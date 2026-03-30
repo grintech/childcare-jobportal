@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { MapPin, Heart, BriefcaseBusinessIcon, Tag, Search, Filter, Briefcase, LayoutGrid, List } from "lucide-react";
+import { MapPin, Heart, BriefcaseBusinessIcon, Tag, Search, Filter, Briefcase} from "lucide-react";
 import { motion } from "framer-motion";
+import ApplyModal from "./ApplyModal";
+import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 const jobsData = [
   // Childcare Centre Manager
@@ -137,7 +140,7 @@ const jobsData = [
 ];
 
 const HireNowJobs = () => {
-
+  const { user, isAuthenticated } = useAuth();
   const [filters, setFilters] = useState({
   role: "",
   location: "",
@@ -145,8 +148,10 @@ const HireNowJobs = () => {
   company: "",
 });
 
-  const [showFilters, setShowFilters] = useState(false);
+const [showApplyModal, setShowApplyModal] = useState(false);
+const [selectedJob, setSelectedJob] = useState(null);
 
+const [showFilters, setShowFilters] = useState(false);
 const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
 
 //  detect resize
@@ -201,6 +206,24 @@ const handleReset = () => {
   });
 };
 
+
+const handleApplyClick = (job) => {
+  // Not logged in
+  if (!isAuthenticated) {
+    toast.error("Please login to apply job");
+    return;
+  }
+
+  // Wrong role
+  if (user?.role !== "teacher") {
+    toast.error("Only jobseeker can apply");
+    return;
+  }
+
+  // Allowed
+  setSelectedJob(job);
+  setShowApplyModal(true);
+};
 
 
 
@@ -341,7 +364,13 @@ const handleReset = () => {
 
                         <div className="job_actions">
                           <Heart size={29} className="wishlist" />
-                          <button className="apply_btn">APPLY</button>
+                          <button
+                            className="apply_btn"
+                            // disabled={!isAuthenticated || user?.role !== "teacher"}
+                            onClick={() => handleApplyClick(job)}
+                          >
+                            APPLY
+                          </button>
                         </div>
 
                       </div>
@@ -448,6 +477,12 @@ const handleReset = () => {
             </div>
         </div>
     )}
+
+    <ApplyModal
+      show={showApplyModal}
+      onClose={() => setShowApplyModal(false)}
+      jobId={selectedJob?.id}
+    />
     
     </>
   );

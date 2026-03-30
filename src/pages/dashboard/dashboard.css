@@ -12,7 +12,7 @@
     padding: 13px 15px;
     background: #f7f7f7;
     color: #000;
-    border-radius: 12px;
+    border-radius: 6px;
     font-size: 15px;
     font-weight: 600;
 }
@@ -156,7 +156,7 @@
 
 .profile_page .react-tel-input .form-control {height: 45px !important; width: 100%;}
 
-.profile_page .card h5{font-size: 18px}
+.profile_page .card h5{font-size: 17px; text-transform: uppercase; margin: 0;}
 .profile_page .card .theme_btn{font-size: 15px !important}
 
 
@@ -350,6 +350,64 @@ margin-top:15px;
 .theme_btn_small:hover{color: #fff;}
 
 
+.sec-title {
+  text-transform: capitalize;
+  font-size: 30px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.form-check .form-check-input{height: 15px; width: 15px;}
+
+.flag-dropdown .search-emoji{display: none !important;}
+
+.react-tel-input .country-list .search-box{width: 90%; height: 42px !important; border-radius: 6px !important;}
+
+
+/*----- Applied-Jobs ------*/
+
+.status_badge {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+/* COLORS */
+.status_applied {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status_review {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.status_shortlisted {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status_interviewed {
+  background: #ede7f6;
+  color: #6a1b9a;
+}
+
+.status_hired {
+  background: #e0f7fa;
+  color: #00838f;
+}
+
+.status_rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+.applied_date {
+  font-size: 13px;
+  color: #000000;
+}
 
 /*-------- Media Queries --------*/
 
@@ -364,6 +422,13 @@ margin-top:15px;
 }
 
 @media screen and (max-width:992px) {
+   .sec-title {
+    font-size: 25px !important;
+  }
+
+  .sec-title {
+    font-size: 22px !important;
+  }
  .dash_sidebar {
     padding: 15px 10px;
     border-radius: 6px;
@@ -379,18 +444,18 @@ margin-top:15px;
  }
 
  /* For WebKit-based browsers (Chrome, Edge, Safari) */
-    .dash_sidebar ul::-webkit-scrollbar {
-        height: 6px; /* For horizontal scrollbars */
-    }
+  .dash_sidebar ul::-webkit-scrollbar {
+      height: 6px; /* For horizontal scrollbars */
+  }
 
-    .dash_sidebar ul::-webkit-scrollbar-track {
-        background: #e7e7e7;
-    }
+  .dash_sidebar ul::-webkit-scrollbar-track {
+      background: #e7e7e7;
+  }
 
-    .dash_sidebar ul::-webkit-scrollbar-thumb {
-        background-color: var(--primary);
-        border-radius: 4px;
-    }
+  .dash_sidebar ul::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 4px;
+  }
 
 
  .dash_sidebar ul a{min-width: fit-content !important; font-size: 13px; padding: 12px 14px;}
@@ -424,13 +489,22 @@ margin-top:15px;
     .profile_image_wrapper .profile_image {margin-bottom: 15px;}
 
     .tour_tabs .nav-tabs .nav-link{font-size: 14px;}
+    .sec-title {
+    font-size: 22px !important;
+  }
 }
 
 @media screen and (max-width:475px) {
-    .tour_card_v2 .tour_image img {height: 200px;}
-    .contact-card img {height: 200px !important;}
+  .tour_card_v2 .tour_image img {height: 200px;}
+  .contact-card img {height: 200px !important;}
+  .profile_image {
+    height: 100px;
+    width: 100px;
+    border-radius: 10px;
+  }
 }
 
 
 @media screen and (max-width:375px) {
+  .react-tel-input .country-list{width: 250px !important;}
 }

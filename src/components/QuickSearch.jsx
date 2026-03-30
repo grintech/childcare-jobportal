@@ -24,17 +24,18 @@ const QuickSearch = () => {
         </div>
 
         {/* Locations */}
-        <div className="mb-2 d-flex flex-wrap">
-          <span className="me-3 text-muted">Locations</span>
+       <div className="mb-2 d-flex flex-wrap">
+        <span className="me-3 text-muted">Locations</span>
 
-          <a href="#" className="qs-link">Delhi</a>
-          <a href="#" className="qs-link">Gurgaon</a>
-          <a href="#" className="qs-link">Noida</a>
-          <a href="#" className="qs-link">Mumbai</a>
-          <a href="#" className="qs-link">Bangalore</a>
-          <a href="#" className="qs-link">Hyderabad</a>
-        </div>
-
+        <a href="#" className="qs-link">Sydney</a>
+        <a href="#" className="qs-link">Melbourne</a>
+        <a href="#" className="qs-link">Brisbane</a>
+        <a href="#" className="qs-link">Perth</a>
+        <a href="#" className="qs-link">Adelaide</a>
+        <a href="#" className="qs-link">Gold Coast</a>
+        <a href="#" className="qs-link">Canberra</a>
+        <a href="#" className="qs-link">Newcastle</a>
+      </div>
         {/* Other */}
         <div className="d-flex flex-wrap">
           <span className="me-3 text-muted">Other</span>

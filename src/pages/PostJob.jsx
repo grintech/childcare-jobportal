@@ -8,7 +8,8 @@ import { UploadCloud, X, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext"; // adjust path if needed
 import { useNavigate } from "react-router-dom";
 
-const BASE_URL = "https://childcrm.grincloudhost.com/public/api";
+// const BASE_URL = "https://childcrm.grincloudhost.com/public/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const INITIAL_FORM = {
   title: "",
@@ -722,11 +723,11 @@ const handlePhoneChange = (value) => {
                         <input className="form-control" value={formData.country} onChange={(e) => handleChange("country", e.target.value)} />
                       </div>
 
-                      {formData.latitude && (
+                      {/* {formData.latitude && (
                         <div className="col-12">
                           <small className="text-muted">📍 Lat: {formData.latitude}, Lng: {formData.longitude}</small>
                         </div>
-                      )}
+                      )} */}
                     </div>
                     <div className="mt-3 d-flex justify-content-between">
                       <button type="button" className="btn btn-light" onClick={back}>Back</button>
@@ -797,9 +798,9 @@ const handlePhoneChange = (value) => {
                           <small className="text-muted">(leave empty for internal applications)</small>
                         </label>
                         <input className="form-control" value={formData.applyUrl} onChange={(e) => handleChange("applyUrl", e.target.value)} />
-                        <small className="text-muted">
+                        {/* <small className="text-muted">
                           apply_type → <strong>{formData.applyUrl.trim() ? "external" : "internal"}</strong>
-                        </small>
+                        </small> */}
                       </div>
 
                       <div className="col-12">

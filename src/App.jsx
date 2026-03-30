@@ -15,6 +15,9 @@ import PublicRoute from './routes/PublicRoute'
 import ProtectedRoute from './routes/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
 import PostJob from './pages/PostJob'
+import Profile from './pages/dashboard/Profile'
+import SavedJobs from './pages/dashboard/SavedJobs'
+import AppliedJobs from './pages/dashboard/AppliedJobs'
 
 const App = () => {
   return (
@@ -41,6 +44,9 @@ const App = () => {
 
         {/*  Protected Pages */}
         <Route path="/my-account" element={ <ProtectedRoute ><MyAccount /></ProtectedRoute>} />
+        <Route path="/profile" element={ <ProtectedRoute ><Profile /></ProtectedRoute>} />
+        <Route path="/saved-jobs" element={ <ProtectedRoute ><SavedJobs /></ProtectedRoute>} />
+        <Route path="/applied-jobs" element={ <ProtectedRoute ><AppliedJobs /></ProtectedRoute>} />
 
 
         <Route path="*" element={<NotFound />} />

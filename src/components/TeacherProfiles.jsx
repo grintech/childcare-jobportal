@@ -95,6 +95,16 @@ const TeacherProfiles = () => {
     }));
   };
 
+  const handleReset = () => {
+    setFilters({
+      name: "",
+      location: "",
+      suburb: "",
+      role: "",
+      badges: []
+    });
+  };
+
   const filteredTeachers = teachersData.filter((teacher) => {
     return (
       teacher.name.toLowerCase().includes(filters.name.toLowerCase()) &&
@@ -105,16 +115,6 @@ const TeacherProfiles = () => {
         filters.badges.every((b) => teacher.badges.includes(b)))
     );
   });
-
-  const handleReset = () => {
-    setFilters({
-      name: "",
-      location: "",
-      suburb: "",
-      role: "",
-      badges: []
-    });
-  };
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, i) => (
@@ -132,18 +132,39 @@ const TeacherProfiles = () => {
       <section className="jobs_section">
         <div className="row">
 
-          {/* FILTER */}
+          {/* DESKTOP FILTER */}
           {!isMobile && (
             <div className="col-lg-3 mb-4">
               <div className="filter_card p-4 rounded-3">
                 <h5 className="fw-bold mb-3">Filters</h5>
 
-                <input name="name" placeholder="Search name..." className="form-control mb-3" onChange={handleChange} />
-                <input name="location" placeholder="Location..." className="form-control mb-3" onChange={handleChange} />
-                <input name="suburb" placeholder="Suburb..." className="form-control mb-3" onChange={handleChange} />
-                <input name="role" placeholder="Role..." className="form-control mb-3" onChange={handleChange} />
+                <label>Name</label>
+                <input name="name" className="form-control mb-3" placeholder="Search name..." onChange={handleChange} />
 
-                <button className="btn w-100" onClick={handleReset}>
+                <label>Location</label>
+                <input name="location" className="form-control mb-3" placeholder="Search location..." onChange={handleChange} />
+
+                <label>Suburb</label>
+                <input name="suburb" className="form-control mb-3" placeholder="Search suburb..." onChange={handleChange} />
+
+                <label>Role</label>
+                <input name="role" className="form-control mb-3" placeholder="Search role..." onChange={handleChange} />
+
+                <label className="mb-2">Certificates</label>
+                {["WWCC", "CPR", "First Aid", "Police Check"].map((cert, i) => (
+                  <div className="form-check" key={i}>
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      value={cert}
+                      onChange={handleBadgeChange}
+                      checked={filters.badges.includes(cert)}
+                    />
+                    <label className="form-check-label">{cert}</label>
+                  </div>
+                ))}
+
+                <button className="btn w-100 mt-3" onClick={handleReset}>
                   Reset <Filter size={16} />
                 </button>
               </div>
@@ -153,31 +174,37 @@ const TeacherProfiles = () => {
           {/* CONTENT */}
           <div className="col-lg-9">
 
+            {/*  MOBILE FILTER BUTTON */}
+            {isMobile && (
+              <button
+                className="btn btn-primary d-flex align-items-center gap-2 mb-3"
+                onClick={() => setShowFilters(true)}
+              >
+                <Filter size={18} />
+                Filters
+              </button>
+            )}
+
             <p className="mb-3 text-muted">
               Showing {filteredTeachers.length} profiles
             </p>
 
-            <div className="row">
+            <div className="row teacher_profiles">
               {filteredTeachers.length > 0 ? (
                 filteredTeachers.map((teacher) => (
                   <div key={teacher.id} className="col-12 mb-4">
-
                     <div className="job_card p-3">
 
-                      <div className="d-flex gap-4">
+                      <div className="d-flex profile_wrap gap-4">
 
-                        {/* IMAGE */}
                         <div className="profile_logo">
-                        <img src={teacher.image} className="rounded-circle"  />
-
+                          <img src={teacher.image} className="rounded-circle" />
                         </div>
 
-                        {/* INFO */}
                         <div className="flex-grow-1">
 
-                          <h5 className="mb-1 d-flex align-items-center gap-2">
+                          <h5 className="d-flex align-items-center gap-2">
                             {teacher.name}
-
                             {teacher.verified && (
                               <span className="verified_badge">
                                 <CheckCircle size={16} /> Verified
@@ -185,45 +212,34 @@ const TeacherProfiles = () => {
                             )}
                           </h5>
 
-                          <p className="mb-1 text-muted">{teacher.jobRole}</p>
+                          <p>{teacher.jobRole}</p>
 
-                          <p className="mb-2 small">
+                          <p>
                             <MapPin size={14} /> {teacher.suburb}, {teacher.location}
                           </p>
 
-                          {/* RATING */}
-                          <div className="d-flex align-items-center gap-1 mb-2">
+                          <div className="d-flex gap-1 mb-2">
                             {renderStars(teacher.rating)}
-                            <span className="ms-1 small">{teacher.rating}</span>
                           </div>
 
-                          {/* DESCRIPTION */}
-                          <p className="small text-muted mb-2">
-                            {teacher.description}
-                          </p>
+                          <p className="small">{teacher.description}</p>
 
-                          {/* BADGES */}
-                          <div className="badges_row mb-2">
+                          <div className="badges_row">
                             {teacher.badges.map((b, i) => (
                               <span key={i} className="badge_item">{b}</span>
                             ))}
                           </div>
 
-                          {/* ACTIONS */}
-                          <div className="d-flex align-items-center gap-2 mt-2">
-                            <button className="btn btn-blue btn-sm">
-                              View Profile
-                            </button>
-                            <button className="btn btn-primary btn-sm">
-                              Hire Now
-                            </button>
+                          <div className="d-flex gap-2 mt-3">
+                            <button className="btn btn-blue btn-sm">View Profile</button>
+                            <button className="btn btn-primary btn-sm">Hire Now</button>
                             <Heart size={26} className="wishlist" />
                           </div>
 
                         </div>
                       </div>
-                    </div>
 
+                    </div>
                   </div>
                 ))
               ) : (
@@ -232,10 +248,107 @@ const TeacherProfiles = () => {
                 </h5>
               )}
             </div>
-
           </div>
         </div>
       </section>
+
+      {/*  MOBILE FILTER MODAL */}
+     {showFilters && (
+        <div className="filter_modal">
+          <div
+            className="filter_overlay"
+            onClick={() => setShowFilters(false)}
+          ></div>
+
+          <div className="filter_content">
+            <div className="d-flex justify-content-between mb-3">
+              <h5 className="fw-semibold">Filters</h5>
+              <button
+                className="btn-close"
+                onClick={() => setShowFilters(false)}
+              ></button>
+            </div>
+
+            {/* NAME */}
+            <label>Name</label>
+            <input
+              name="name"
+              className="form-control mb-3"
+              placeholder="Search name..."
+              onChange={handleChange}
+              value={filters.name}
+            />
+
+            {/* LOCATION */}
+            <label>Location</label>
+            <input
+              name="location"
+              className="form-control mb-3"
+              placeholder="Search location..."
+              onChange={handleChange}
+              value={filters.location}
+            />
+
+            {/* SUBURB */}
+            <label>Suburb</label>
+            <input
+              name="suburb"
+              className="form-control mb-3"
+              placeholder="Search suburb..."
+              onChange={handleChange}
+              value={filters.suburb}
+            />
+
+            {/* ROLE */}
+            <label>Role</label>
+            <input
+              name="role"
+              className="form-control mb-3"
+              placeholder="Search role..."
+              onChange={handleChange}
+              value={filters.role}
+            />
+
+            {/* CERTIFICATES */}
+            <label className="mb-2">Certificates</label>
+            {["WWCC", "CPR", "First Aid", "Police Check"].map((cert, i) => (
+              <div className="form-check" key={i}>
+                <input
+                  type="checkbox"
+                  value={cert}
+                  className="form-check-input"
+                  onChange={handleBadgeChange}
+                  checked={filters.badges.includes(cert)}
+                  id={`cert_mobile_${i}`}
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor={`cert_mobile_${i}`}
+                >
+                  {cert}
+                </label>
+              </div>
+            ))}
+
+            {/* BUTTONS */}
+            <div className="d-flex gap-2 mt-4">
+              <button
+                className="btn btn-secondary w-50"
+                onClick={handleReset}
+              >
+                Clear All
+              </button>
+
+              <button
+                className="btn btn-primary w-50"
+                onClick={() => setShowFilters(false)}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
