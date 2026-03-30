@@ -1,0 +1,52 @@
+import React from 'react'
+import Homepage from './pages/Homepage'
+import { Routes, Route } from 'react-router-dom'
+import Register from './pages/auth/Register'
+import Login from './pages/auth/Login'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
+import NotFound from './pages/NotFound'
+import HireNow from './pages/HireNow'
+import ScrollToTop from './components/ScrollToTop'
+import UpSkill from './pages/UpSkill'
+import FindJobs from './pages/FindJobs'
+import MyAccount from './pages/dashboard/MyAccount'
+import PublicRoute from './routes/PublicRoute'
+import ProtectedRoute from './routes/ProtectedRoute'
+import { Toaster } from 'react-hot-toast'
+import PostJob from './pages/PostJob'
+
+const App = () => {
+  return (
+    <>
+    <ScrollToTop />
+     <Toaster
+        position="top-center"
+        reverseOrder={false}
+      />
+      <Routes>
+        <Route path="/" element={<Homepage />} />
+       
+        {/* Auth Pages */}
+        <Route path="/signup" element={<PublicRoute><Register /></PublicRoute> } />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute> } />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute> } />
+
+        {/* Public Pages  */}
+        <Route path="/jobs" element={<FindJobs />} />
+        <Route path="/profiles" element={<HireNow />} />
+        <Route path="/get-trained" element={<UpSkill />} />
+        <Route path="/job-post" element={<PostJob />} />
+
+        {/*  Protected Pages */}
+        <Route path="/my-account" element={ <ProtectedRoute ><MyAccount /></ProtectedRoute>} />
+
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  )
+}
+
+export default App
