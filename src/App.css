@@ -209,10 +209,12 @@
 /*------ Find Job ----*/
  .job_hero{
  background:  var(--secondary);
- padding: 160px 0 60px 0;
+ padding: 110px 0 80px 0;
  color: #fff;
 }
-
+.upskill_page .job_hero{
+  padding: 110px 0 20px 0 !important;
+}
 .blue_nav .navbar {background-color: #252525 ;}
 /* .blue_nav .navbar {background-color: var(--primary) !important;} */
 
@@ -245,16 +247,37 @@
 .job_hero select:focus{border: 1px solid var(--primary) !important;}
 .hire_now{background-color: #f7f7f7;}
 .hire_now .filter_card{
-  position: sticky !important;
-    top: 115px !important;
+   position: relative !important;
+    top: unset !important;
     /* box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; */
     /* border: 1px solid var(--secondary); */
     box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 }
 
-.filter_card .btn{background-color: var(--secondary); color: #fff;}
+.home_filter_wrapper .filter_card {margin-top: -170px; }
 
-.filter_card .btn:hover{border-color: var(--secondary);}
+ .filter_card{
+    margin-top: -140px;
+    background: #c4f5ff;
+    position: relative !important;
+    top: unset !important;
+}
+
+.filter_checks .form-check-label{font-size: 14px; margin: 0 !important;}
+.filter_checks .form-check{margin: 0 !important;}
+
+.filter_checks{
+    background: #fff;
+    min-height: 45px;
+    border-radius: 6px;
+    padding: 5px 10px;
+    align-items: center;
+    border: 1px solid #dee2e6;
+}
+
+.filter_card .btn{background-color: var(--secondary); color: #fff; height: 45px;}
+
+.filter_card .btn:hover{background-color: #fff; border-color: var(--secondary); color: var(--secondary); }
 
 .view_toggle button {
   border: 1px solid #ddd;
@@ -361,6 +384,7 @@
 }
 
 .verified_badge{color: #108a00; font-weight: 600; font-size: 15px;}
+.contact_info .small{font-size: 15px !important;}
 
 /*--- Redirecting CSS ---------*/
 
@@ -377,6 +401,114 @@
   justify-content: center;
   flex-direction: column;
   z-index: 9999;
+}
+
+
+/*----- Job Detail page ------*/
+
+.job_detail_card {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.job_logo_big {
+  width: 60px;
+  height: 60px;
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.similar_job_card {
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 10px;
+  background: #fff;
+  transition: 0.3s;
+}
+.similar_job_card .badge{background-color: #fde5e5 !important;}
+
+.similar_job_card:hover {
+  border-color: var(--primary);
+}
+
+
+/* Banner */
+.job_banner img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* Card */
+.job_detail_card {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+/* Logo */
+.job_logo_big img {
+  width: 60px;
+  height: 60px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+/* Company */
+.company_name {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Dot */
+.dot {
+  width: 4px;
+  height: 4px;
+  background: #ccc;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Meta */
+.job_meta p {
+  margin-bottom: 6px;
+  /* font-size: 14px; */
+  /* colorgb(1, 1, 2)563; */
+}
+
+/* Buttons */
+.apply_btn_big {
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+.save_btn {
+  background: #f3f4f6;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+/* Highlights */
+.job_highlights {
+  padding-left: 18px;
+}
+
+.job_highlights li {
+  margin-bottom: 6px;
+}
+
+/* Description */
+.description_long {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 

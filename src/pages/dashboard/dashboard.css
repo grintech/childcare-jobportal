@@ -171,6 +171,14 @@
 .profile_page .form-control, .profile_page .form-select{border-radius: 6px !important;}
 .profile_page textarea.form-control{min-height: 80px;}
 
+.profile_page .upload_resume_input{
+  background-color: #f8f9fa;
+  height: 42px;
+}
+.profile_page .upload_resume_input:hover{
+    background-color: #e9ecef !important;
+}
+
 /* ---- Booked Tours ------*/
 
 .tour_card_v2 {

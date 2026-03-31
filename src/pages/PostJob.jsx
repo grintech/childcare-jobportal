@@ -27,6 +27,7 @@ const INITIAL_FORM = {
   city: "",
   state: "",
   country: "",
+  suburb: "",
   latitude: "",
   longitude: "",
   minSalary: "",
@@ -119,31 +120,73 @@ const PostJob = () => {
   ];
 
   // ── Google Places ────────────────────────────────────────────────────────────
+  // const onPlaceChanged = () => {
+  //   if (!autocomplete) return;
+  //   const place = autocomplete.getPlace();
+  //   if (!place || !place.address_components) return;
+
+  //   let city = "", state = "", country = "";
+  //   place.address_components.forEach((comp) => {
+  //     const types = comp.types;
+  //     if (types.includes("locality")) city = comp.long_name;
+  //     if (!city && types.includes("administrative_area_level_2")) city = comp.long_name;
+  //     if (types.includes("administrative_area_level_1")) state = comp.long_name;
+  //     if (types.includes("country")) country = comp.long_name;
+  //   });
+
+  //   const lat = place.geometry?.location?.lat() ?? "";
+  //   const lng = place.geometry?.location?.lng() ?? "";
+
+  //   setFormData(prev => ({
+  //     ...prev,
+  //     address: place.formatted_address || "",
+  //     city, state, country, latitude: lat, longitude: lng,
+  //   }));
+  //   setIsAddressSelected(true);
+  //   if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
+  // };
+
+
   const onPlaceChanged = () => {
-    if (!autocomplete) return;
-    const place = autocomplete.getPlace();
-    if (!place || !place.address_components) return;
+  if (!autocomplete) return;
+  const place = autocomplete.getPlace();
+  if (!place || !place.address_components) return;
 
-    let city = "", state = "", country = "";
-    place.address_components.forEach((comp) => {
-      const types = comp.types;
-      if (types.includes("locality")) city = comp.long_name;
-      if (!city && types.includes("administrative_area_level_2")) city = comp.long_name;
-      if (types.includes("administrative_area_level_1")) state = comp.long_name;
-      if (types.includes("country")) country = comp.long_name;
-    });
+  let city = "", state = "", country = "", suburb = "";
 
-    const lat = place.geometry?.location?.lat() ?? "";
-    const lng = place.geometry?.location?.lng() ?? "";
+place.address_components.forEach((comp) => {
+  const types = comp.types;
 
-    setFormData(prev => ({
-      ...prev,
-      address: place.formatted_address || "",
-      city, state, country, latitude: lat, longitude: lng,
-    }));
-    setIsAddressSelected(true);
-    if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
-  };
+  // Suburb with multiple fallbacks
+  if (
+    types.includes("sublocality_level_1") ||
+    types.includes("sublocality") ||
+    types.includes("neighborhood") ||
+    types.includes("administrative_area_level_2")
+  ) {
+    if (!suburb) suburb = comp.long_name; // first match wins
+  }
+
+  if (types.includes("locality")) city = comp.long_name;
+  if (!city && types.includes("administrative_area_level_2")) city = comp.long_name;
+  if (types.includes("administrative_area_level_1")) state = comp.long_name;
+  if (types.includes("country")) country = comp.long_name;
+});
+
+  const lat = place.geometry?.location?.lat() ?? "";
+  const lng = place.geometry?.location?.lng() ?? "";
+
+  setFormData(prev => ({
+    ...prev,
+    address: place.formatted_address || "",
+    city, state, country, latitude: lat, longitude: lng,
+    suburb, //  add to state
+  }));
+
+  setIsAddressSelected(true);
+  if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
+};
+
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -165,6 +208,22 @@ const PostJob = () => {
     setIsAddressSelected(false);
     if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
   };
+
+const validateDeadline = (value) => {
+  if (!value) return "";
+
+  const selected = new Date(value);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1); // ✅ tomorrow
+  tomorrow.setHours(0, 0, 0, 0);
+
+  const year = selected.getFullYear();
+
+  if (year < 1000 || year > 9999) return "Please enter a valid 4-digit year.";
+  if (selected < tomorrow) return "Deadline must be a future date (from tomorrow onwards)."; // ✅ blocks today too
+
+  return "";
+};
 
   // ── Step Validation ──────────────────────────────────────────────────────────
   const validateStep1 = () => {
@@ -221,6 +280,10 @@ if (formData.durationType && !formData.duration)
 
   if (min && max && max < min)
     e.maxSalary = "Max salary cannot be less than min salary.";
+
+  // Deadline validation
+  const deadlineError = validateDeadline(formData.deadline);
+  if (deadlineError) e.deadline = deadlineError;
 
   setErrors(e);
   return !Object.keys(e).length;
@@ -296,6 +359,7 @@ if (formData.durationType && !formData.duration)
     payload.append("country", formData.country);
     payload.append("state", formData.state);
     payload.append("city", formData.city);
+    payload.append("suburb", formData.suburb);
     payload.append("latitude", formData.latitude);
     payload.append("longitude", formData.longitude);
     payload.append("skills", JSON.stringify(formData.skills));
@@ -350,7 +414,7 @@ if (formData.durationType && !formData.duration)
       });
 
       if (jobData.status) {
-        setTimeout(() => resetAndRedirect(loginData.token), 1500);
+        setTimeout(() => resetAndRedirect(loginData.token), 3000);
       }
     } catch {
       setApiMessage({ text: "Network error. Please try again.", success: false });
@@ -424,7 +488,7 @@ const handleSignup = async () => {
       setTimeout(() => {
         setShowModal(false);
         navigate("/login")
-      }, 2000);
+      }, 3000);
     }
   } catch {
     setApiMessage({ text: "Network error. Please try again.", success: false });
@@ -436,6 +500,13 @@ const handleSignup = async () => {
 
   const handleSubmitClick = () => {
     if (!validateStep3()) return;
+
+     // ✅ Console all form keys and values
+    console.log("=== Form Data ===");
+    Object.entries(formData).forEach(([key, value]) => {
+      console.log(`${key}:`, value);
+    });
+
     setApiMessage({ text: "", success: null });
     setAuthErrors({});
     setShowModal(true);
@@ -803,10 +874,32 @@ const handlePhoneChange = (value) => {
                         </small> */}
                       </div>
 
-                      <div className="col-12">
+                      {/* <div className="col-12">
                         <label>Deadline</label>
                         <input type="date" className="form-control" value={formData.deadline} onChange={(e) => handleChange("deadline", e.target.value)} />
+                      </div> */}
+
+                      <div className="col-12">
+                        <label>Deadline</label>
+                        <input
+                          type="date"
+                          className={`form-control ${errors.deadline ? "is-invalid" : ""}`}
+                          value={formData.deadline}
+                          min={(() => {
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1); // ✅ tomorrow's date
+                            return tomorrow.toISOString().split("T")[0];
+                          })()}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const error = validateDeadline(value);
+                            handleChange("deadline", value);
+                            setErrors((prev) => ({ ...prev, deadline: error }));
+                          }}
+                        />
+                        <Err field="deadline" />
                       </div>
+
                     </div>
                     <div className="mt-3 d-flex justify-content-between">
                       <button type="button" className="btn btn-light" onClick={back}>Back</button>

@@ -1,17 +1,22 @@
 import { useRef, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
-const ApplyModal = ({ show, onClose, jobId }) => {
+const ApplyModal = ({ show, onClose, jobData }) => {
   const fileRef = useRef();
   const { user } = useAuth();
+  // console.log(jobData)
+
+  const [submitStatus, setSubmitStatus] = useState(null); 
+
+const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     cover: "",
   });
-
   const [resume, setResume] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
 
@@ -42,6 +47,10 @@ const ApplyModal = ({ show, onClose, jobId }) => {
       cover: "",
     });
 
+    // reset API states 
+    setSubmitStatus(null);
+    setSubmitting(false);
+
     // clear resume
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
@@ -50,7 +59,7 @@ const ApplyModal = ({ show, onClose, jobId }) => {
     // clear file input
     if (fileRef.current) fileRef.current.value = null;
   }
-}, [show, jobId]);
+}, [show, jobData]);
 
 
   if (!show) return null;
@@ -83,7 +92,7 @@ const ApplyModal = ({ show, onClose, jobId }) => {
     setPreviewUrl(url);
     setResume(file);
 
-    toast.success("Resume uploaded");
+    // toast.success("Resume uploaded");
   };
 
   const removeResume = () => {
@@ -93,25 +102,62 @@ const ApplyModal = ({ show, onClose, jobId }) => {
     fileRef.current.value = null;
   };
 
- const handleSubmit = () => {
-  if (!form.name || !form.email || !form.cover || !resume) {
-    toast.error("Please fill all fields");
+const handleSubmit = async () => {
+  if (!form.name || !form.email || !form.cover) {
+    setSubmitStatus({
+      type: "error",
+      message: "Please fill all required fields",
+    });
     return;
   }
 
-  const payload = {
-    job_id: jobId,
-    name: form.name,
-    email: form.email,
-    cover_letter: form.cover,
-    resume: resume,
-  };
+  try {
+    setSubmitting(true);
+    setSubmitStatus(null);
 
-  console.log("Payload:", payload); 
+    const formData = new FormData();
+    formData.append("job_id", jobData.id);
+    formData.append("cover_letter", form.cover);
 
-  toast.success("Application submitted successfully!");
+    if (resume) {
+      formData.append("resume", resume);
+    }
 
-  onClose();
+    const res = await api.post("/jobs/apply", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (res.status) {
+      setSubmitStatus({
+        type: "success",
+        message: res.message || "Application submitted successfully!",
+      });
+
+      // optional: auto close after success
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    }
+
+  } catch (err) {
+      if (err.errors) {
+      const firstError = Object.values(err.errors)[0]?.[0];
+
+      setSubmitStatus({
+        type: "error",
+        message: firstError || "Validation error",
+      });
+    } else {
+      setSubmitStatus({
+        type: "error",
+        message: err.message || "Something went wrong",
+      });
+    }
+  } finally {
+    setSubmitting(false);
+  }
 };
 
   return (
@@ -122,7 +168,7 @@ const ApplyModal = ({ show, onClose, jobId }) => {
 
         {/* HEADER */}
         <div className="d-flex justify-content-between align-items-center mb-3">
-          <h4 className="fw-semibold">Apply Job </h4>
+          <h5 className="fw-semibold">Apply for {jobData.title} </h5>
           <button className="btn-close" onClick={onClose}></button>
         </div>
 
@@ -157,7 +203,7 @@ const ApplyModal = ({ show, onClose, jobId }) => {
         {/* RESUME */}
         <div className="mb-3">
           <label className="form-label">
-            Upload Resume <span className="text-danger">*</span>
+            Upload Resume (optional)
           </label>
 
           <input
@@ -215,13 +261,24 @@ const ApplyModal = ({ show, onClose, jobId }) => {
           />
         </div>
 
-        {/* BUTTON */}
-        <div className="text-end">
-          <button className="btn btn-primary" 
-           onClick={handleSubmit}
-           disabled={!form.cover || !resume}
+        {submitStatus && (
+          <div
+            className={`my-2 text-center text-${
+              submitStatus.type === "success" ? "success" : "danger"
+            } fw-semibold`}
           >
-            Submit Application
+            {submitStatus.message}
+          </div>
+        )}
+
+        {/* BUTTON */}
+        <div className="text-end mt-3">
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={!form.cover || submitting}
+          >
+            {submitting ? "Submitting..." : "Submit Application"}
           </button>
         </div>
 

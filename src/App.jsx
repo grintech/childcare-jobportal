@@ -18,6 +18,7 @@ import PostJob from './pages/PostJob'
 import Profile from './pages/dashboard/Profile'
 import SavedJobs from './pages/dashboard/SavedJobs'
 import AppliedJobs from './pages/dashboard/AppliedJobs'
+import JobDetailPage from './pages/JobDetailPage'
 
 const App = () => {
   return (
@@ -41,6 +42,7 @@ const App = () => {
         <Route path="/profiles" element={<HireNow />} />
         <Route path="/get-trained" element={<UpSkill />} />
         <Route path="/job-post" element={<PostJob />} />
+        <Route path="/job/:slug" element={<JobDetailPage />} />
 
         {/*  Protected Pages */}
         <Route path="/my-account" element={ <ProtectedRoute ><MyAccount /></ProtectedRoute>} />

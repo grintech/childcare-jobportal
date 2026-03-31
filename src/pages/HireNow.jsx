@@ -2,6 +2,8 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import TeacherProfiles from '../components/TeacherProfiles'
 import { motion } from "framer-motion";
+import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const HireNow = () => {
 
@@ -44,7 +46,18 @@ const rightVariant = {
                           Search for people who have made their profiles public
                           </motion.p>
 
-                         <motion.div className="row align-items-center justify-content-center"
+                         <motion.div className=""
+                          initial={{ x: -40, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.6, duration: 0.6 }}
+                          >
+                           <Link to='/signup'>
+                           <button className="btn-search w-auto">Get Started <ArrowRight size={18} className=''  /> </button>
+                           </Link>
+
+                        </motion.div>
+
+                      {/*  <motion.div className="row align-items-center justify-content-center"
                           initial={{ y: 40, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                            transition={{ delay: 0.6, duration: 0.6 }}
@@ -77,7 +90,8 @@ const rightVariant = {
                               <button className="btn-search w-100">Search Now</button>
                             </div>
                           </div>
-                        </motion.div>
+                        </motion.div> */}
+
                     </motion.div>
                     <motion.div className="col-lg-4 offset-lg-1 d-none d-lg-block"
                       variants={rightVariant}

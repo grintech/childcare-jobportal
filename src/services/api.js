@@ -8,7 +8,7 @@ const api = axios.create({
   },
 });
 
-// ✅ REQUEST INTERCEPTOR (Attach token automatically)
+//  REQUEST INTERCEPTOR (Attach token automatically)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -22,7 +22,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ RESPONSE INTERCEPTOR (your existing one)
+//  RESPONSE INTERCEPTOR (your existing one)
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {

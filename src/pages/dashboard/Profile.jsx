@@ -534,8 +534,7 @@ const Profile = () => {
                           <label className="mb-2">Upload Resume</label>
                           <input
                             type="file"
-                            className="form-control"
-                            style={{ background: "#e9ecef" }}
+                            className="form-control upload_resume_input"
                             accept="application/pdf"
                             onChange={handleResumeChange}
                           />

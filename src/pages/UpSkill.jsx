@@ -92,11 +92,9 @@ const rightVariant = {
                 </div>
             </div>
 
-            <div className="">
               <div className="container">
                 <CourseSlider />
               </div>
-            </div>
 
             <div className="hire_now_banner section_padding">
               <div className="container">

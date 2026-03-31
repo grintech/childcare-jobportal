@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { PlayCircle } from 'lucide-react';
+import { ArrowRight, ArrowRightCircle, PlayCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from "framer-motion";
 
@@ -51,7 +51,18 @@ const Hero = () => {
               Job Vacancies Right Now
             </motion.h1>
 
-             <motion.div 
+            <motion.div 
+             initial={{ x: -80, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 1, duration: 0.6 }}
+             >
+            <h6>Explore thousands of verified opportunities tailored to your skills and preferences.Start your journey today and connect with employers hiring right now.</h6>
+            <Link to='/signup'>
+            <button className='btn-search'>Explore Jobs <ArrowRight size={18} className=''  /> </button>
+            </Link>
+             </motion.div>
+
+             {/* <motion.div 
              initial={{ x: -80, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 1, duration: 0.6 }}
@@ -71,15 +82,6 @@ const Hero = () => {
                       className="form-control"
                     />
 
-                    {/* <select className="form-select">
-                      <option>Select role</option>
-                      <option>Childcare Centre Manager</option>
-                      <option>Assistant Centre Manager</option>
-                      <option>Early Childhood Teacher</option>
-                      <option>Lead Educator</option>
-                      <option>Assistant Educator</option>
-                      <option>Cook</option>
-                    </select> */}
                   </div>
                 </div>
 
@@ -89,23 +91,6 @@ const Hero = () => {
                   </div>
                 </div>
               </div>
-            </motion.div>
-
-
-           
-            {/* Button */}
-            {/* <motion.div
-              initial={{ x: -80, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 1.5, duration: 0.6 }}
-            >
-              <Link
-                to="/signup"
-                className="btn btn-light btn-lg d-inline-flex align-items-center gap-2 rounded-3 px-4 shadow"
-              >
-                <PlayCircle size={20} className="text_theme" />
-                Get Started
-              </Link>
             </motion.div> */}
 
           </motion.div>
