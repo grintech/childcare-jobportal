@@ -422,7 +422,7 @@ const Profile = () => {
     formData.append("education", JSON.stringify(educationRows));
     formData.append("experience", JSON.stringify(experienceRows));
     console.log("Submitting profile...", Object.fromEntries(formData));
-    toast.success("Profile updated successfully!");
+    // toast.success("Profile updated successfully!");
   };
 
   const handleUpdatePassword = () => {
