@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapPin, Heart, Filter, Briefcase, Star, CheckCircle, Phone, Mail } from "lucide-react";
+import { MapPin, Heart, Filter, Briefcase, Star, CheckCircle, Phone, Mail, ChevronUp, ChevronDown } from "lucide-react";
 
 const avatar1 = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80";
 const avatar2 = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80";
@@ -12,7 +12,7 @@ const teachersData = [
     name: "Emily Carter",
     jobRole: "Assistant Educator",
     description:
-      "Passionate about early childhood education with a strong focus on creating a safe, engaging, and nurturing environment for children. Skilled in supporting learning through play-based activities and positive communication.",
+      "Passionate about early childhood education with a strong focus on creating a safe, engaging, and nurturing environment for children. Skilled in supporting learning through play-based activities and positive communication.Passionate about early childhood education with a strong focus on creating a safe, engaging, and nurturing environment for children. Skilled in supporting learning through play-based activities and positive communication.Passionate about early childhood education with a strong focus on creating a safe, engaging, and nurturing environment for children. Skilled in supporting learning through play-based activities and positive communication.",
     location: "Sydney, NSW",
     suburb: "Parramatta",
     image: avatar1,
@@ -71,7 +71,12 @@ const TeacherProfiles = () => {
   });
 
   const [showProfileModal, setShowProfileModal] = useState(false);
-const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+  setExpanded(false);
+}, [selectedTeacher]);
 
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -238,7 +243,7 @@ const formatName = (name) => {
 
                           <div className="badges_row">
                             {teacher.badges.map((b, i) => (
-                              <span key={i} className="badge_item">{b}</span>
+                              <span key={i} className="badge_item">{b} <CheckCircle size={14} className="mb-1 ms-1" /> </span>
                             ))}
                           </div>
 
@@ -283,7 +288,7 @@ const formatName = (name) => {
 
       {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5 className="fw-semibold">Teacher Profile</h5>
+        <h5 className="fw-semibold">Profile</h5>
         <button
           className="btn-close"
           onClick={() => setShowProfileModal(false)}
@@ -311,6 +316,7 @@ const formatName = (name) => {
           </span>
         )}
         </p>
+        
          
          {/* RATING */}
       <div className="d-flex gap-1  justify-content-center">
@@ -319,28 +325,53 @@ const formatName = (name) => {
       </div>
       </div>
 
-      {/* CONTACT */}
-      <div className="d-flex gap-3 justify-content-center mb-2 text_theme">
-        <p className="mb-1">
-          <Phone size={14} /> +61 xxx xxx xxx
-        </p>
-        <p className="mb-0">
-          <Mail size={14} /> abcd@xxxxx.com
-        </p>
+      <div className="modal_inside">
+          {/* CONTACT */}
+          <div className="d-flex gap-3 justify-content-center mb-2 text_theme">
+            <p className="mb-1">
+              <Phone size={14} /> +61 xxx xxx xxx
+            </p>
+            <p className="mb-0">
+              <Mail size={14} /> abcd@xxxxx.com
+            </p>
+          </div>
+
+            {/* BADGES */}
+          <div className="badges_row justify-content-center mb-3">
+            {selectedTeacher.badges.map((b, i) => (
+              <span key={i} className="badge_item">{b} <CheckCircle size={14} className="mb-1" /> </span>
+            ))}
+          </div>
+        
+
+          {/* DESCRIPTION */}
+         <div className="text-center mb-3">
+          <p
+            className={`inside_description mb-0 ${!expanded ? "clamp" : ""}`}
+          >
+            {selectedTeacher.description}
+          </p>
+
+          {selectedTeacher.description?.length > 120 && (
+           <span
+            className="read_more d-inline-flex align-items-center gap-1"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (
+              <>
+                Read less <ChevronUp size={16} className="mt-1" />
+              </>
+            ) : (
+              <>
+                Read more <ChevronDown size={16} className="mt-1" />
+              </>
+            )}
+          </span>
+          )}
+        </div>
+
       </div>
 
-         {/* BADGES */}
-      <div className="badges_row justify-content-center mb-3">
-        {selectedTeacher.badges.map((b, i) => (
-          <span key={i} className="badge_item">{b}</span>
-        ))}
-      </div>
-     
-
-      {/* DESCRIPTION */}
-      <p className=" text-center mb-3">
-        {selectedTeacher.description}
-      </p>
 
      
 

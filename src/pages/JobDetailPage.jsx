@@ -1,124 +1,523 @@
+import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { motion } from "framer-motion";
-import { useParams } from "react-router-dom";
-import { MapPin, Heart, HeartIcon, ArrowRightFromLineIcon, ArrowRight } from "lucide-react";
+import { useParams, Link } from "react-router-dom";
+import {
+  MapPin,
+  Heart,
+  HeartIcon,
+  ArrowRight,
+  Loader2,
+  Loader,
+  BriefcaseBusiness,
+  BriefcaseBusinessIcon,
+  CheckCircle,
+  Tag,
+  Briefcase,
+  Award,
+  Clock,
+  Phone,
+  Mail,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import ApplyModal from "../components/ApplyModal";
+import JobCardSkeleton from "../components/skeletons/JobCardSkeleton";
 
 const JobDetailPage = () => {
   const { slug } = useParams();
+  const { user, isAuthenticated } = useAuth();
 
-  const formatSlug = (slug) => {
-    if (!slug) return "";
-    return slug
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+
+  const [expandedDesc, setExpandedDesc] = useState(false);
+
+  const [similarJobs, setSimilarJobs] = useState([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
+  const [savingId, setSavingId] = useState(null);
+
+
+  // ✅ FETCH JOB
+  const fetchJob = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/jobs/${slug}`);
+
+      if (res.status) {
+        setJob(res.data);
+      }
+    } catch (err) {
+      toast.error("Failed to fetch job");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  // ✅ APPLY
+  const handleApplyClick = (job) => {
+    // Not logged in
+    if (!isAuthenticated) {
+      toast.error("Please login to apply the job!");
+      return;
+    }
+
+    // Wrong role
+    if (user?.role !== "teacher") {
+      toast.error("Only jobseeker can the apply!");
+      return;
+    }
+
+    // Allowed
+    setSelectedJob(job);
+    setShowApplyModal(true);
+  };
+
+  // ✅ SAVE / UNSAVE
+  const handleSave = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to save a job!");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const res = await api.post("/save/unsave", {
+        slug: job.slug,
+      });
+
+      setJob((prev) => ({
+        ...prev,
+        is_saved: res?.is_saved ?? !prev.is_saved,
+      }));
+
+      toast.success(res.message || "Updated");
+    } catch (err) {
+      toast.error("Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ✅ Similar Jobs
+
+  const fetchSimilarJobs = async () => {
+  try {
+    setSimilarLoading(true);
+
+    const res = await api.get(`/jobs/${slug}/similar`);
+
+    if (res.status) {
+      setSimilarJobs(res.data.slice(0, 4));
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    setSimilarLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (slug) {
+    fetchJob();
+    fetchSimilarJobs();
+  }
+}, [slug]);
+
+ // ✅ SAVE / UNSAVE SIMILAR
+const handleSaveToggle = async (item) => {
+  if (!isAuthenticated) {
+    toast.error("Please login to save a job!");
+    return;
+  }
+
+  try {
+    setSavingId(item.id);
+
+    const res = await api.post("/save/unsave", {
+      slug: item.slug,
+    });
+
+    setSimilarJobs((prev) =>
+      prev.map((j) =>
+        j.id === item.id
+          ? { ...j, is_saved: res?.is_saved ?? !j.is_saved }
+          : j
+      )
+    );
+
+    toast.success(res.message || "Updated");
+  } catch (err) {
+    toast.error("Something went wrong");
+  } finally {
+    setSavingId(null);
+  }
+};
+
+
+
+const stripHtml = (html) => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+};
+
+ 
+  const maskPhone = (phone) => {
+  if (!phone) return "";
+
+  const clean = phone.replace(/\s+/g, "");
+
+    // Keep country code + last 3 digits
+    const last3 = clean.slice(-3);
+    const countryCode = clean.startsWith("+")
+      ? clean.slice(0, clean.indexOf(" ") > 0 ? clean.indexOf(" ") : 3)
+      : "+XX";
+
+    return `${countryCode} xxx xxx ${last3}`;
+  };
+
+  const maskEmail = (email) => {
+    if (!email) return "";
+
+    const [name, domain] = email.split("@");
+
+    if (!name || !domain) return email;
+
+    const visible = name.slice(0, 3); 
+    return `${visible}xxxx@${domain}`;
   };
 
   return (
-    <div className="single_page blue_nav">
-      <Navbar />
-    <div className=" top_padding">
-      <div className="container my-4">
-        
-        <div className="row">
-          
-          {/* LEFT SIDE */}
-        <div className="col-lg-8">
+    <>
+      <div className="single_page blue_nav">
+        <Navbar />
 
-        <div className="job_detail_card mb-3">
-            <div className="job_banner mb-3">
-                <img
-                src="/images/job_detail.png"
-                alt="job"
-                />
-            </div>
-
-            {/* Company + Logo */}
-            <div className="d-flex align-items-center gap-3 mb-3">
-            <div className="job_logo_big"><img src="/images/job_logo.png" className="" alt="" /></div>
-
-            <div>
-                <p className="company_name mb-0">Canberra Grammar School</p>
-                <h4 className="mb-1 fw-semibold">
-                {formatSlug(slug)}
-                </h4>
-
-                <div className="d-flex align-items-center gap-2 small text-muted">
-                ⭐ 4.4 <span>7 reviews</span>
-                <span className="dot"></span>
-                <span className="view_jobs">View all jobs</span>
+        <div className="top_padding">
+          <div className="container my-4">
+            {loading || !job ? (
+                <div className="d-flex flex-column justify-content-center align-items-center min_height" >
+                  <Loader size={40} className="spin" />
+                  <p>Please wait....</p>
                 </div>
-            </div>
-            </div>
+              ) : (
+                  <>
+                      <div className="row">
 
-            {/* Meta Info */}
-            <div className="job_meta mb-3">
-            <p><MapPin size={14} /> Canberra ACT</p>
-            <p>Teaching - Primary (Education & Training)</p>
-            <p><span className="badge bg-secondary">Full Time</span></p>
-            </div>
+                        {/* LEFT SIDE */}
+                        <div className="col-lg-8 mb-5 mb-lg-0">
 
-            {/* Posted */}
-            <p className="posted small text-muted">Posted 25d ago</p>
+                          <div className="job_detail_card shadow-sm mb-3">
 
-            {/* Buttons */}
-            <div className="d-flex gap-2 mt-3">
-            <button className=" btn-post">Apply <ArrowRight size={18} className="mb-1" /> </button>
-            <button className="btn-login">Save <HeartIcon size={18} className="mb-1"/></button>
-            </div>
-        </div>
+                            <div className="job_banner mb-3">
+                              <img src={`${job.image || "/images/job_detail.png"} `} alt="job" />
+                            </div>
 
-        {/*  DESCRIPTION */}
-        <div className="job_detail_card">
+                            {/* HEADER */}
+                            <div className="d-flex align-items-center gap-3 mb-3">
+                              <div className="job_logo_big">
+                                
+                                {job.profile_image ? (
+                                  <img src={job.profile_image} alt="" />
+                                ) : (
+                                  <div className="fallback_icon">
+                                    <BriefcaseBusiness size={25} />
+                                  </div>
+                                )}
+                              </div>
 
-            <h5 className="fw-semibold" >Job Description</h5>
-            <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Autem enim, quae sunt vel, recusandae quo itaque ullam natus vero ipsam odio accusamus eaque, perferendis quod? Maiores in tenetur officia praesentium mollitia itaque ipsum numquam, quos placeat quo modi. Similique beatae ea dolore praesentium rerum, incidunt aliquam cumque dicta molestiae eos? <br />
-                  <ul className="job_highlights">
-                <li>Fixed-term full-time contract starting Term 2, 2026</li>
-                <li>Supportive and collaborative school environment</li>
-                <li>Focus on student growth and development</li>
-                </ul>
-            </p>
-        </div>
+                              <div>
+                                <p className="company_name mb-0">
+                                  {job.institution_name}
+                                </p>
 
-        </div>
+                                <h4 className="mb-1 fw-semibold">
+                                  {job.title}
+                                </h4>
 
+                                <div className="small text-muted">
+                                  ⭐ 4.4 • {job.applications_count} applicants
+                                </div>
+                              </div>
+                            </div>
 
-          {/* RIGHT SIDE */}
-          <div className="col-lg-4">
+                            {/* META */}
+                            <div className="job_meta mb-3">
+                              <p className="mb-3">
+                                <MapPin size={14} /> {job.city}, {job.state}
+                              </p>
+                              <p className="d-flex flex-wrap gap-2">
+                                <span className="badge bg-secondary text-capitalize">
+                                  {job.job_type}
+                                </span>
+                                <span className="badge bg-secondary text-capitalize">
+                                  {job.work_mode}
+                                </span>
+                              </p>
+                            </div>
 
-            <h5 className="fw-bold mb-3">Similar Jobs</h5>
+                            {/* SALARY */}
+                            {/* <p className="posted small text_theme">
+                              <b>Salary:</b> ${job.salary_min} - ${job.salary_max} ({job.salary_type})
+                            </p> */}
 
-            {[1, 2, 3].map((item) => (
-              <div className="similar_job_card mb-3" key={item}>
-                <div className="d-flex justify-content-between">
-                  
-                  <div>
-                    <h6 className="mb-1">
-                      Remote Software Engineer
-                    </h6>
-                    <p className="small text-muted mb-1">
-                      Remote • 5+ yrs
-                    </p>
-                    <span className="badge bg-light text-dark">
-                      USD 40/hr
-                    </span>
-                  </div>
+                            {/* BUTTONS */}
+                            <div className="d-flex gap-2 mt-3">
 
-                  <Heart size={18} />
-                </div>
-              </div>
-            ))}
+                              {/* APPLY */}
+                              <button
+                                className="btn-post"
+                                onClick={() => handleApplyClick(job)}
+                                disabled={job.is_applied}
+                              >
+                                {job.is_applied ? "APPLIED" : (
+                                  <>APPLY <ArrowRight size={18} /></>
+                                )}
+                              </button>
 
+                              {/* SAVE */}
+                              <button className="btn2" onClick={handleSave}>
+                                {saving ? (
+                                <span className="d-inline-flex align-items-center gap-1">
+                                  Saving... <Loader size={18} className="spin" />
+                                </span>
+                                ) : (
+                                  <>
+                                    {job.is_saved ? "Saved" : "Save"}{" "}
+                                    <HeartIcon
+                                      size={18}
+                                      fill={job.is_saved ? "red" : "none"}
+                                      className="mb-1"
+                                    />
+                                  </>
+                                )}
+                              </button>
+
+                            </div>
+                          </div>
+
+                          {/* DESCRIPTION */}
+                          <div className="job_detail_card shadow-sm">
+                            <h5 className="fw-semibold">Job Description</h5>
+
+                            <div className="job_description_wrapper">
+                            
+                            <div
+                              className={`job_description ${!expandedDesc ? "clamped" : ""}`}
+                              dangerouslySetInnerHTML={{
+                                __html: job.description,
+                              }}
+                            />
+
+                            {job.description?.length > 200 && (
+                              <span className="read_more" onClick={() => setExpandedDesc(!expandedDesc)}>
+                                {expandedDesc ? "Read less" : "Read more..."}
+                              </span>
+                            )}
+
+                          </div>
+
+                            <div className="mt-3 ">
+                              <b>Skills:</b>{" "}
+                              {job.skills?.map((s, i) => (
+                                <span key={i} className="me-2 text-capitalize badge p-2 bg-light text-dark">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="mt-3 ">
+                              <b>Role:</b>{" "}
+                              <span>{job.job_category}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* RIGHT SIDE */}
+                        <div className="col-lg-4">
+                          <div className="job_detail_card card_right shadow-sm">
+
+                            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
+                              <BriefcaseBusinessIcon size={22} /> Job Info
+                            </h5>
+
+                            <p className="d-flex align-items-start gap-2">
+                              <Award size={16} className="mt-1 text_theme" />
+                              <span>
+                                <b>Experience:</b> {job.experience_min} - {job.experience_max} yrs
+                              </span>
+                            </p>
+
+                            <p className="d-flex align-items-start gap-2">
+                              <MapPin size={16} className="mt-1 text_theme" />
+                              <span>
+                                <b>Location:</b> {job.address}
+                              </span>
+                            </p>
+
+                            <p className="d-flex align-items-start gap-2">
+                              <MapPin size={16} className="mt-1 text_theme" />
+                              <span>
+                                <b>Salary:</b> <span className="text_theme">${job.salary_min} - ${job.salary_max} ({job.salary_type})</span>
+                              </span>
+                            </p>
+
+                            <p className="d-flex align-items-start gap-2">
+                              <Clock size={16} className="mt-1 text_theme" />
+                              <span>
+                                <b>Duration:</b> {job.duration} {job.duration_type}
+                              </span>
+                            </p>
+
+                            <p className="d-flex align-items-start gap-2">
+                              <Phone size={16} className="mt-1 text_theme" />
+                              <span>
+                                <b>Phone:</b>{" "}
+                                <span className="">{maskPhone(job.phone_no)}</span>
+                              </span>
+                            </p>
+
+                            <p className="d-flex align-items-start gap-2">
+                              <Mail size={16} className="mt-1 text_theme" />
+                              <span>
+                                <b>Email:</b>{" "}
+                                <span className="">{maskEmail(job.user_email)}</span>
+                              </span>
+                            </p>
+
+                          </div>
+                        </div>
+
+                      </div>
+
+                      <div className="row mt-5">
+                        <h4 className="fw-bold">Similar Jobs</h4>
+
+                        {similarLoading ? (
+                          <JobCardSkeleton />
+                        ) : similarJobs.length > 0 ? (
+                          similarJobs.map((item) => (
+                            <div className="col-12 mb-4" key={item.id}>
+                              <div className="job_card">
+                                <div className="job_card_body list_view">
+
+                                  {/* LOGO */}
+                                  <div className="job_logo">
+                                    {item.profile_image ? (
+                                      <img
+                                        src={item.profile_image}
+                                        alt=""
+                                        style={{
+                                          width: "55px",
+                                          height: "55px",
+                                          objectFit: "cover",
+                                          borderRadius: "50px",
+                                        }}
+                                      />
+                                    ) : (
+                                      <BriefcaseBusinessIcon />
+                                    )}
+                                  </div>
+
+                                  {/* INFO */}
+                                  <div className="job_info">
+                                    <h5>
+                                      <Link to={`/job/${item.slug}`}>{item.title}</Link>
+                                      <span className="verified_badge ms-1">
+                                        <CheckCircle size={16} /> Verified
+                                      </span>
+                                    </h5>
+
+                                    <p className="company mb-2">{item.institution_name}</p>
+
+                                    <Link to={`/job/${item.slug}`}>
+                                      <p className="description small">
+                                        {stripHtml(item.description).slice(0, 120)}...
+                                      </p>
+                                    </Link>
+
+                                    <p className="salary">
+                                      ${item.salary_min} - ${item.salary_max} ({item.salary_type})
+                                    </p>
+
+                                    <p className="location m-0">
+                                      <MapPin size={14} className="mb-1" /> {item.city},{" "}
+                                      {item.state}
+                                    </p>
+                                  </div>
+
+                                  {/* ACTIONS */}
+                                  <div className="job_actions">
+                                    <div
+                                      onClick={() => handleSaveToggle(item)}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      {savingId === item.id ? (
+                                        <Loader size={26} className="spin wishlist" />
+                                      ) : (
+                                        <Heart
+                                          className="wishlist"
+                                          size={26}
+                                          fill={item.is_saved ? "red" : "none"}
+                                          stroke={item.is_saved ? "red" : "currentColor"}
+                                        />
+                                      )}
+                                    </div>
+
+                                    <button
+                                      className="apply_btn"
+                                      onClick={() => handleApplyClick(item)}
+                                      disabled={item.is_applied}
+                                    >
+                                      {item.is_applied ? "APPLIED" : "APPLY"}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* TAGS */}
+                                <div className="job_tags d-flex">
+                                  <div className="d-flex gap-2">
+                                    <Tag size={16} />
+                                    <strong>Tagged as:</strong>
+                                  </div>
+
+                                  {item.skills?.map((tag, i) => (
+                                    <span key={i} className="text-capitalize">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-12">
+                              <div className="d-flex flex-column align-items-center justify-content-center bg-white py-4 px-3 ">
+                            <Briefcase size={25} className="mb-2" /> 
+                              <h5 className="text-center">  No similar jobs found! </h5>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                  </>
+                ) }
           </div>
-
         </div>
+
+        <Footer />
       </div>
 
-    </div>
-
-      <Footer />
-    </div>
+      <ApplyModal
+          show={showApplyModal}
+          onClose={() => setShowApplyModal(false)}
+          jobData={selectedJob}
+        />
+    </>
   );
 };
 

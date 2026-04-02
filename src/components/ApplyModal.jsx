@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 
-const ApplyModal = ({ show, onClose, jobData }) => {
+const ApplyModal = ({ show, onClose, jobData, onApplied}) => {
   const fileRef = useRef();
   const { user } = useAuth();
   // console.log(jobData)
@@ -134,6 +134,11 @@ const handleSubmit = async () => {
         type: "success",
         message: res.message || "Application submitted successfully!",
       });
+
+      //  ADD THIS
+      if (onApplied) {
+        onApplied(jobData.job_id || jobData.id);
+      }
 
       // optional: auto close after success
       setTimeout(() => {

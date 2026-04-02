@@ -22,7 +22,8 @@
 }
 .dashboard_counts a{color: #000;}
 
-.modal-footer .btn-secondary{padding: 8px 12px;}
+/* .modal-footer .btn-secondary{padding: 8px 12px;} */
+
 .modal .btn-close {
   background: var(--secondary);
   opacity: 1;
@@ -178,6 +179,13 @@
 .profile_page .upload_resume_input:hover{
     background-color: #e9ecef !important;
 }
+
+/*-------- Saved Jobs ------------*/
+
+.saved_jobs .job_card .job_tags{display: none !important;}
+
+
+
 
 /* ---- Booked Tours ------*/
 

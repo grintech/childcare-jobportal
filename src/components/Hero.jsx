@@ -57,9 +57,11 @@ const Hero = () => {
               transition={{ delay: 1, duration: 0.6 }}
              >
             <h6>Explore thousands of verified opportunities tailored to your skills and preferences.Start your journey today and connect with employers hiring right now.</h6>
-            <Link to='/signup'>
-            <button className='btn-search'>Explore Jobs <ArrowRight size={18} className=''  /> </button>
-            </Link>
+           <Link to="/signup" state={{ role: "teacher" }}>
+            <button className='btn-search mt-3'>
+              Explore More <ArrowRight size={18} />
+            </button>
+          </Link>
              </motion.div>
 
              {/* <motion.div 

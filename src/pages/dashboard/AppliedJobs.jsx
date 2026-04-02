@@ -1,75 +1,49 @@
-import { BriefcaseBusiness, BriefcaseBusinessIcon, MapPin } from "lucide-react";
+import { BriefcaseBusiness, BriefcaseBusinessIcon, Loader, MapPin } from "lucide-react";
 import Footer from "../../components/Footer";
 import Navbar from "../../components/Navbar";
 import DashSidebar from "./DashSidebar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-
-const appliedJobsData = [
-  {
-    id: 1,
-    title: "Childcare Centre Manager",
-    company: "Bright Kids School",
-    salary: "$60k - $75k",
-    location: "Sydney, NSW",
-    suburb: "Parramatta",
-    status: "applied",
-    applied_on: "2026-03-15",
-  },
-  {
-    id: 2,
-    title: "Senior Centre Manager",
-    company: "Little Explorers",
-    salary: "$65k - $80k",
-    location: "Melbourne, VIC",
-    suburb: "Southbank",
-    status: "in-review",
-    applied_on: "2026-03-10",
-  },
-  {
-    id: 3,
-    title: "Assistant Centre Manager",
-    company: "Happy Kids Care",
-    salary: "$50k - $60k",
-    location: "Melbourne, VIC",
-    suburb: "Richmond",
-    status: "shortlisted",
-    applied_on: "2026-03-05",
-  },
-  {
-    id: 4,
-    title: "Deputy Manager",
-    company: "Growing Minds",
-    salary: "$52k - $62k",
-    location: "Brisbane, QLD",
-    suburb: "Fortitude Valley",
-    status: "interviewed",
-    applied_on: "2026-03-15",
-  },
-  {
-    id: 5,
-    title: "Teacher",
-    company: "ABC School",
-    salary: "$45k - $55k",
-    location: "Perth, WA",
-    suburb: "Subiaco",
-    status: "hired",
-    applied_on: "2026-03-10",
-  },
-  {
-    id: 6,
-    title: "Assistant Teacher",
-    company: "Kids World",
-    salary: "$40k - $50k",
-    location: "Adelaide, SA",
-    suburb: "Glenelg",
-    status: "rejected",
-    applied_on: "2026-03-05",
-  },
-];
+import JobCardSkeleton from "../../components/skeletons/JobCardSkeleton";
+import api from "../../services/api";
 
 const AppliedJobs = () => {
-  const [jobs, setJobs] = useState(appliedJobsData);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+   const [selectedJob, setSelectedJob] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+
+ const fetchAppliedJobs = async (page = 1) => {
+  try {
+    setLoading(true);
+
+    const res = await api.get(`/applied/job-list?page=${page}`);
+
+    console.log("SUCCESS:", res);
+
+    if (res?.status) {
+      setJobs(res.data);
+      setCurrentPage(res.pagination?.current_page || 1);
+      setLastPage(res.pagination?.last_page || 1);
+    }
+  } catch (err) {
+    console.log("ERROR FULL:", err);
+    toast.error(err?.message || "Failed to fetch applied jobs");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+    fetchAppliedJobs(currentPage);
+  }, [currentPage]);
+
+
 
   // STATUS COLORS
   const getStatusClass = (status) => {
@@ -91,8 +65,13 @@ const AppliedJobs = () => {
     }
   };
 
-  // FORMAT STATUS
-  const formatStatus = (status) => status.replace("-", " ");
+  // FORMAT Status
+
+ const normalizeStatus = (status) => {
+    if (status === "new") return "applied";
+    return status.replace("_", "-");
+  };
+
 
   // FORMAT DATE
   const formatDate = (date) => {
@@ -111,10 +90,31 @@ const AppliedJobs = () => {
   };
 
   // CANCEL APPLICATION
-  const handleCancel = (id) => {
-    setJobs((prev) => prev.filter((job) => job.id !== id));
-    toast.success("Application cancelled successfully!");
-  };
+  const handleCancel = async () => {
+  if (!selectedJob) return;
+
+  try {
+    setDeletingId(selectedJob.application_id);
+
+    const res = await api.delete(
+      `/applied/delete/${selectedJob.application_id}`
+    );
+
+    setJobs((prev) =>
+      prev.filter(
+        (item) => item.application_id !== selectedJob.application_id
+      )
+    );
+
+    toast.success(res.message || "Application withdrawn");
+  } catch (err) {
+    toast.error("Failed to cancel application");
+  } finally {
+    setDeletingId(null);
+    setShowConfirmModal(false);
+    setSelectedJob(null);
+  }
+};
 
   return (
     <>
@@ -124,9 +124,7 @@ const AppliedJobs = () => {
         <div className="saved_jobs top_padding">
           <div className="container py-4">
             <div className="row">
-              <h1 className="mb-3 sec-title text-center">
-                Applied Jobs
-              </h1>
+              <h1 className="mb-3 sec-title text-center">Applied Jobs</h1>
 
               <div className="col-lg-4 col-xl-3 mb-4 mb-lg-0">
                 <DashSidebar />
@@ -134,66 +132,120 @@ const AppliedJobs = () => {
 
               <div className="col-lg-8 col-xl-9 mb-4 mb-lg-0">
                 <div className="row">
-                  {jobs.length > 0 ? (
-                    jobs.map((job) => (
-                      <div className="col-12 mb-4" key={job.id}>
-                        <div className="job_card">
-                          <div className="job_card_body list_view">
+                  {loading ? (
+                    [...Array(2)].map((_, i) => <JobCardSkeleton key={i} />)
+                  ) : jobs.length > 0 ? (
+                    jobs.map((job) => {
+                      const status = normalizeStatus(job.application_status);
 
-                            <div className="job_logo">
-                              <BriefcaseBusinessIcon />
-                            </div>
-
-                            <div className="job_info">
-                              <h5>{job.title}</h5>
-                              <p className="company">{job.company}</p>
-                              <p className="salary">{job.salary}</p>
-
-                              <p className="location">
-                                <MapPin size={14} /> {job.suburb}, {job.location}
-                              </p>
-                            </div>
-
-                            {/*  STATUS + CANCEL */}
-                            <div className="job_actions text-end flex-column">
-                              <div className="d-flex align-items-center gap-2 justify-content-end">
-                                <span
-                                  className={`status_badge ${getStatusClass(
-                                    job.status
-                                  )}`}
-                                >
-                                  {formatStatus(job.status)}
-                                </span>
-
-                                {/*  CANCEL BUTTON */}
-                                <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={() => handleCancel(job.id)}
-                                  data-bs-toggle="tooltip"
-                                  data-bs-placement="top"
-                                  title="Cancel Application"
-                                >
-                                  Cancel
-                                </button>
+                      return (
+                        <div className="col-12 mb-4" key={job.application_id}>
+                          <div className="job_card">
+                            <div className="job_card_body list_view">
+                              {/* LOGO */}
+                              <div className="job_logo">
+                                {job.featured_image ? (
+                                  <img
+                                    src={job.featured_image}
+                                    alt=""
+                                    style={{
+                                      width: "55px",
+                                      height: "55px",
+                                      objectFit: "cover",
+                                      borderRadius: "50px",
+                                    }}
+                                  />
+                                ) : (
+                                  <BriefcaseBusinessIcon />
+                                )}
                               </div>
 
-                              {/*  APPLIED DATE */}
-                              <small className="applied_date mt-1 mb-0">
-                                Applied on: {formatDate(job.applied_on)}
-                              </small>
-                            </div>
+                              {/* INFO */}
+                              <div className="job_info">
+                                <h5>{job.title}</h5>
+                                <p className="company">{job.job_category}</p>
 
+                                <p className="salary">
+                                  ${job.salary_min} - ${job.salary_max} (
+                                  {job.salary_type})
+                                </p>
+
+                                <p className="location">
+                                  <MapPin size={14} /> {job.city}, {job.state}
+                                </p>
+                              </div>
+
+                              {/* STATUS */}
+                              <div className="job_actions text-end flex-column">
+                                <div className="d-flex align-items-center gap-2 justify-content-end">
+                                  <span
+                                    className={`status_badge ${getStatusClass(status)}`}
+                                  >
+                                    {status.replace("-", " ")}
+                                  </span>
+
+                                  <button
+                                    className="btn btn-sm btn-danger"
+                                    onClick={() => {
+                                      setSelectedJob(job);
+                                      setShowConfirmModal(true);
+                                    }}
+                                    disabled={deletingId === job.application_id}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+
+                                <small className="applied_date mt-1 mb-0">
+                                  Applied on: {formatDate(job.applied_at)}
+                                </small>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
-                     <div className="card border-0 shadow-sm py-4 d-flex flex -column justify-content-center align-items-center">
-                        <BriefcaseBusiness  className="mb-2" size={25} />
-                        <h6> No applied jobs found!</h6>
+                    <div className="card border-0 shadow-sm py-4 d-flex flex-column justify-content-center align-items-center">
+                      <BriefcaseBusiness className="mb-2" size={25} />
+                      <h6>No applied jobs found!</h6>
                     </div>
                   )}
                 </div>
+
+                {lastPage > 1 && (
+                  <div className="d-flex justify-content-center gap-2 mt-4">
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => prev - 1)}
+                    >
+                      Prev
+                    </button>
+
+                    {[...Array(lastPage)].map((_, i) => (
+                      <button
+                        key={i}
+                        className={`btn btn-sm ${
+                          currentPage === i + 1
+                            ? "btn-primary"
+                            : "btn-outline-secondary"
+                        }`}
+                        onClick={() => setCurrentPage(i + 1)}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      disabled={currentPage === lastPage}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -201,6 +253,63 @@ const AppliedJobs = () => {
 
         <Footer />
       </div>
+      {showConfirmModal && (
+  <>
+    <div className="modal-backdrop fade show"></div>
+
+    <div
+      className="modal fade show d-block"
+      tabIndex="-1"
+      style={{ zIndex: 1055 }}
+    >
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content">
+
+          <div className="modal-header">
+            <h5 className="modal-title fw-bold">Cancel Application</h5>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setShowConfirmModal(false)}
+            ></button>
+          </div>
+
+          <div className="modal-body text-center">
+            <h6 className="fw-bold my-2">
+              Are you sure you want to cancel this application?
+            </h6>
+          </div>
+
+          <div className="modal-footer d-flex justify-content-center">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowConfirmModal(false)}
+            >
+              No
+            </button>
+
+            <button
+              className="btn btn-danger"
+              onClick={handleCancel}
+              disabled={deletingId === selectedJob?.application_id}
+            >
+              {deletingId === selectedJob?.application_id ? (
+                <>
+                  <Loader size={16} className="spin me-1" />
+                  Deleting...
+                </>
+              ) : (
+                "Yes, Cancel"
+              )}
+            </button>
+            
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </>
+)}
     </>
   );
 };

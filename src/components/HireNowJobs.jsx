@@ -7,9 +7,10 @@ import {
   Search,
   Filter,
   Briefcase,
-  CheckCheck,
   CheckCircle,
   Star,
+  Loader2,
+  Loader
 } from "lucide-react";
 import { motion } from "framer-motion";
 import ApplyModal from "./ApplyModal";
@@ -17,12 +18,16 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import api from "../services/api";
 import JobCardSkeleton from "./skeletons/JobCardSkeleton";
+import { Link } from "react-router-dom";
 
 const HireNowJobs = () => {
   const { user, isAuthenticated } = useAuth();
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const [savingId, setSavingId] = useState(null); // loading per card
+  const [savedItems, setSavedItems] = useState({}); // track saved state
 
   const desktopSliderRef = useRef(null);
   // const mobileSliderRef = useRef(null);
@@ -32,7 +37,7 @@ const HireNowJobs = () => {
     location: "",
     suburb: "",
     company: "",
-    salary_max: 50,
+    // salary_max: 50,
   });
 
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -103,7 +108,7 @@ const renderStars = (rating) => {
         location: filters.location,
         suburb: filters.suburb,
         institution_name: filters.company, 
-        salary_max: filters.salary_max,
+        // salary_max: filters.salary_max,
       };
 
       const res = await api.get("/job-list", { params });
@@ -136,9 +141,68 @@ const renderStars = (rating) => {
       location: "",
       suburb: "",
       company: "",
-      salary_max: 50,
+      // salary_max: 50,
     });
   };
+
+   useEffect(() => {
+  if (jobs.length) {
+    const initialSaved = {};
+    jobs.forEach((job) => {
+      initialSaved[job.id] = job.is_saved; //  from API
+    });
+    setSavedItems(initialSaved);
+  }
+}, [jobs]);
+
+
+const handleAppliedUpdate = (jobId) => {
+  setJobs((prevJobs) =>
+    prevJobs.map((job) =>
+      job.id === jobId
+        ? { ...job, is_applied: true }
+        : job
+    )
+  );
+};
+
+
+
+
+const handleSaveToggle = async (job) => {
+  //  Not logged in
+  if (!isAuthenticated) {
+    toast.error("Please login to save a job!");
+    return;
+  }
+  // Wrong role
+    if (user?.role !== "teacher") {
+      toast.error("Only jobseeker can save the job!");
+      return;
+    }
+
+  try {
+    setSavingId(job.id);
+
+    const payload = {
+      slug: job.slug, 
+    };
+
+    const res = await api.post("/save/unsave", payload);
+
+    setSavedItems((prev) => ({
+      ...prev,
+      [job.id]: res?.is_saved ?? !prev[job.id],
+    }));
+
+    toast.success(res.message || "Updated successfully");
+  } catch (err) {
+    toast.error(err?.response?.data?.message || "Something went wrong");
+  } finally {
+    setSavingId(null);
+  }
+};
+
 
   return (
     <>
@@ -147,8 +211,8 @@ const renderStars = (rating) => {
 
           {/* ================= LEFT FILTER PANEL ================= */}
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}   // 🔥 start smaller
-              animate={{ scale: 1, opacity: 1 }}     // 🔥 zoom to normal
+              initial={{ scale: 0.8, opacity: 0 }}   // start smaller
+              animate={{ scale: 1, opacity: 1 }}     // zoom to normal
               transition={{
                 delay: 1,
                 duration: 0.6,
@@ -278,13 +342,20 @@ const renderStars = (rating) => {
                         </div>
 
                         <div className="job_info">
-                          <h5>{job.title} <span className="verified_badge ms-1">
+                        
+                           <h5>
+                             <Link to={`/job/${job.slug}`}>{job.title} </Link>
+                             <span className="verified_badge ms-1">
                                 <CheckCircle size={16} /> Verified
-                              </span></h5>
+                              </span>
+                              </h5>
+                        
                           <p className="company mb-2">{job.institution_name}</p>
-                         <p className="description small">
-                          {stripHtml(job.description)}
-                        </p>
+                          <Link to={`/job/${job.slug}`}>
+                            <p className="description small">
+                              {stripHtml(job.description)}
+                            </p>
+                          </Link>
 
                           <p className="salary">
                             ${job.salary_min} - ${job.salary_max} (
@@ -302,12 +373,30 @@ const renderStars = (rating) => {
                         </div>
 
                         <div className="job_actions">
-                          <Heart size={29} className="wishlist" />
+                          {/* <Heart size={29} className="wishlist" /> */}
+                          <div
+                          
+                          onClick={() => handleSaveToggle(job)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          {savingId === job.id ? (
+                            <Loader size={26} className="wishlist spin" />
+                          ) : (
+                            <Heart
+                              className="wishlist"
+                              size={26}
+                              fill={savedItems[job.id] ? "red" : "none"}
+                              stroke={savedItems[job.id] ? "red" : "currentColor"}
+                            />
+                          )}
+                        </div>
+                        
                           <button
                             className="apply_btn"
                             onClick={() => handleApplyClick(job)}
+                            disabled={job.is_applied}
                           >
-                            APPLY
+                            {job.is_applied ? "APPLIED" : "APPLY"}
                           </button>
                         </div>
                       </div>
@@ -345,6 +434,7 @@ const renderStars = (rating) => {
         show={showApplyModal}
         onClose={() => setShowApplyModal(false)}
         jobData={selectedJob}
+        onApplied={handleAppliedUpdate}
       />
     </>
   );

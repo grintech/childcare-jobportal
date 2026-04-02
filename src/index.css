@@ -119,6 +119,34 @@ html {
   background-color: var(--dark) !important;
   transition: all .3s ;
 }
+.btn-post:disabled{cursor: not-allowed;}
+
+.btn2 {
+  background: var(--primary) !important;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  letter-spacing: 0;
+  padding: 10px 25px;
+  font-size: 14px;
+  line-height: 1.72;
+  border-radius: 6px;
+  text-transform: uppercase;
+  transition: all .3s ;
+}
+.btn2:hover {
+  opacity: 0.9;
+  background: transparent !important;
+  transition: all .3s ;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+/* .btn2:hover svg{stroke: #fff !important;} */
 
 .navbar-toggler:focus {
   box-shadow: none;
@@ -473,10 +501,11 @@ html {
   width: 100%;
 }
 
-.job_info h5{
+.job_info h5, .job_info h5 a{
   font-size: 17px;
   margin-bottom: 3px;
   font-weight: 600;
+  color: #000 !important;
 }
 
 .description {
@@ -555,7 +584,11 @@ html {
 }
 .apply_btn:hover:not(:disabled) {background: var(--primary); transition: all .3s;}
 
-.apply_btn:disabled{cursor: not-allowed;}
+.apply_btn:disabled {
+  background: #505050;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
 /* tags */
 
@@ -1658,6 +1691,41 @@ html {
 .custom_modal .form-control::placeholder{color: gray; font-size: 15px;}
 .btn-close:focus{box-shadow: none !important;}
 
+.modal_inside {
+  max-height: 400px; 
+  overflow-y: auto;
+  padding-right: 6px; 
+}
+
+.inside_description{color: rgb(75, 74, 74);}
+/* Description clamp (4 lines) */
+.inside_description.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Read more link */
+.read_more {
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.read_more svg {
+  transition: transform 0.2s ease;
+}
+
+.modal_inside::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal_inside::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
 
 
 .custom-slider {
@@ -1697,6 +1765,33 @@ html {
   border: 3px solid var(--primary);
   cursor: pointer;
 }
+
+
+.spin {
+  animation: spin 1s linear infinite;
+  color: var(--secondary);
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*---- MEDIA QUERIES ------*/
 
