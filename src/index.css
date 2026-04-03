@@ -1406,6 +1406,7 @@ html {
   max-width: 800px;
   margin: 40px auto;
 }
+.postjob_container .input-group input{border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;}
 
 /* CARD STYLE (override bootstrap slightly) */
 .postjob_container .card {
@@ -1498,6 +1499,7 @@ html {
   border-radius: 20px;
   cursor: pointer;
   font-weight: 500;
+  font-size: 14px;
 }
 
 .postjob_container .badge:hover {

@@ -6,6 +6,14 @@ import Footer from "../../components/Footer";
 import toast from "react-hot-toast";
 import "react-phone-input-2/lib/style.css";
 import ReactPhoneInput from "react-phone-input-2";
+import api from "../../services/api";
+import { File } from "lucide-react";
+import ProfileSkeleton from "../../components/skeletons/ProfileSkeleton";
+import { UploadCloud, Trash2 } from "lucide-react";
+
+import { Autocomplete, useJsApiLoader } from "@react-google-maps/api";
+
+const LIBRARIES = ["places"];
 
 // Fix for CJS/ESM interop — some bundlers expose .default, some don't
 const PhoneInput = ReactPhoneInput?.default ?? ReactPhoneInput;
@@ -42,64 +50,12 @@ const validateYears = (start, end, isCurrentlyWorking = false) => {
   if (start && (isNaN(s) || s === 0)) return "Start year cannot be zero.";
   if (!isCurrentlyWorking) {
     if (end && (isNaN(e) || e === 0)) return "End year cannot be zero.";
-    if (start && end && e < s) return "End year cannot be less than start year.";
+    if (start && end && e < s)
+      return "End year cannot be less than start year.";
   }
   return null;
 };
 
-// ─── Google Places Autocomplete hook ─────────────────────────────────────────
-// ─── Load Google Maps script — returns a Promise so we wait for it ───────────
-const loadGoogleMapsScript = (() => {
-  let promise = null;
-  return () => {
-    if (promise) return promise;
-    promise = new Promise((resolve) => {
-      if (window.google?.maps?.places) { resolve(); return; }
-      const existing = document.getElementById("google-maps-script");
-      if (existing) { existing.addEventListener("load", resolve); return; }
-      const script = document.createElement("script");
-      script.id = "google-maps-script";
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = resolve;
-      document.head.appendChild(script);
-    });
-    return promise;
-  };
-})();
-
-// ─── Google Places Autocomplete hook ─────────────────────────────────────────
-const useGooglePlaces = (inputRef, onSelect) => {
-  useEffect(() => {
-    let autocomplete;
-    loadGoogleMapsScript().then(() => {
-      if (!inputRef.current) return;
-      autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ["geocode"],
-        fields: ["address_components", "formatted_address"],
-      });
-      // Stop Enter key from submitting any parent form
-      inputRef.current.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") e.preventDefault();
-      });
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (!place.address_components) return;
-        let city = "", state = "", country = "";
-        place.address_components.forEach((comp) => {
-          if (comp.types.includes("locality")) city = comp.long_name;
-          if (comp.types.includes("administrative_area_level_1")) state = comp.long_name;
-          if (comp.types.includes("country")) country = comp.long_name;
-        });
-        onSelect({ address: place.formatted_address, city, state, country });
-      });
-    });
-    return () => {
-      if (autocomplete) window.google?.maps?.event?.clearInstanceListeners(autocomplete);
-    };
-  }, [inputRef, onSelect]);
-};
 
 // ─── EducationRow ─────────────────────────────────────────────────────────────
 const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
@@ -140,7 +96,9 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
             className="form-control"
             placeholder="i.e Harvard University"
             value={row.institution_name}
-            onChange={(e) => onChange(row.id, "institution_name", e.target.value)}
+            onChange={(e) =>
+              onChange(row.id, "institution_name", e.target.value)
+            }
           />
         </div>
         <div className="col-md-4 mb-4">
@@ -214,7 +172,9 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
             className="form-control"
             placeholder="i.e Harvard University"
             value={row.institution_name}
-            onChange={(e) => onChange(row.id, "institution_name", e.target.value)}
+            onChange={(e) =>
+              onChange(row.id, "institution_name", e.target.value)
+            }
           />
         </div>
         <div className="col-md-6 mb-4">
@@ -253,9 +213,14 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
               type="checkbox"
               id={`currently_working_${row.id}`}
               checked={row.currently_working}
-              onChange={(e) => onChange(row.id, "currently_working", e.target.checked)}
+              onChange={(e) =>
+                onChange(row.id, "currently_working", e.target.checked)
+              }
             />
-            <label className="form-check-label" htmlFor={`currently_working_${row.id}`}>
+            <label
+              className="form-check-label"
+              htmlFor={`currently_working_${row.id}`}
+            >
               Currently Working Here
             </label>
           </div>
@@ -294,10 +259,15 @@ const Profile = () => {
   const [resumeFile, setResumeFile] = useState(null);
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
-  const [state, setState] = useState("");
+  // const [state, setState] = useState("");
+  const [suburb, setSuburb] = useState("");
   const [country, setCountry] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+
+  const [autocomplete, setAutocomplete] = useState(null);
+
+  const [profileCompletion, setProfileCompletion] = useState(0);
 
   // Professional Details
   const [qualification, setQualification] = useState("");
@@ -306,12 +276,36 @@ const Profile = () => {
   const [currentSchool, setCurrentSchool] = useState("");
   const [bio, setBio] = useState("");
   const [socialLinks, setSocialLinks] = useState({
-    facebook: "", instagram: "", linkedin: "", twitter: "",
+    facebook: "",
+    instagram: "",
+    linkedin: "",
+    twitter: "",
   });
+  const [existingResume, setExistingResume] = useState(null);
+  const [removeResume, setRemoveResume] = useState(false);
+
+  const [removeProfileImage, setRemoveProfileImage] = useState(false);
 
   // Education & Experience
   const [educationRows, setEducationRows] = useState([emptyEducation()]);
   const [experienceRows, setExperienceRows] = useState([emptyExperience()]);
+
+  const [certificates, setCertificates] = useState({
+    wwcc: null,
+    cpr: null,
+    first_aid: null,
+    police_check: null,
+  });
+
+  // const [certificateFiles, setCertificateFiles] = useState({
+  //   wwcc: null,
+  //   cpr: null,
+  //   first_aid: null,
+  //   police_check: null,
+  // });
+
+  const [certUploading, setCertUploading] = useState({});
+  const [certDeleting, setCertDeleting] = useState({});
 
   // Password
   const [showOld, setShowOld] = useState(false);
@@ -321,53 +315,117 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
 
-  const handleAddressSelect = useCallback(({ address, city, state, country }) => {
-    setAddress(address);
-    setCity(city);
-    setState(state);
-    setCountry(country);
-  }, []);
+const onPlaceChanged = () => {
+  if (!autocomplete) return;
+  const place = autocomplete.getPlace();
+  if (!place || !place.address_components) return;
 
-  useGooglePlaces(addressInputRef, handleAddressSelect);
+  let suburb = "", city = "", country = "";
+  let lat = "", lng = "";
 
-  const handleUploadClick = () => fileInputRef.current.click();
+  if (place.geometry?.location) {
+    lat = place.geometry.location.lat();
+    lng = place.geometry.location.lng();
+  }
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload a valid image file (JPEG or PNG).");
-      return;
+  place.address_components.forEach((comp) => {
+    const types = comp.types;
+
+    // Suburb — try multiple fallbacks in priority order
+    if (types.includes("sublocality_level_1")) {
+      suburb = comp.long_name;
+    } else if (types.includes("sublocality")) {
+      if (!suburb) suburb = comp.long_name;
+    } else if (types.includes("neighborhood")) {
+      if (!suburb) suburb = comp.long_name;
+    } else if (types.includes("administrative_area_level_2")) {
+      if (!suburb) suburb = comp.long_name;  // ← catches "Melbourne City" etc
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be less than 2 MB.");
-      return;
-    }
-    setProfileFile(file);
-    setProfileImage(URL.createObjectURL(file));
-  };
 
-  const handleRemoveImage = () => {
-    setProfileImage("/images/default_img.png");
-    setProfileFile(null);
+    if (types.includes("locality")) city = comp.long_name;
+    if (types.includes("country")) country = comp.long_name;
+  });
+
+  // ← Final fallback: if still empty, use city as suburb
+  // (common for Melbourne CBD addresses like St Kilda Rd)
+  if (!suburb && city) suburb = city;
+
+  setAddress(place.formatted_address || "");
+  setSuburb(suburb);
+  setCity(city);
+  setCountry(country);
+  setLatitude(lat);
+  setLongitude(lng);
+};
+
+
+// Inside component:
+const { isLoaded } = useJsApiLoader({
+  googleMapsApiKey: GOOGLE_API_KEY, // you already have this constant
+  libraries: LIBRARIES,
+});
+
+  
+
+const handleUploadClick = () => fileInputRef.current.click();
+
+const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    toast.error("Please upload a valid image file (JPEG or PNG).");
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error("Image must be less than 2 MB.");
+    return;
+  }
+
+  setProfileFile(file);
+  setProfileImage(URL.createObjectURL(file));
+  setRemoveProfileImage(false); // ✅ reset delete flag
+};
+
+const handleRemoveImage = () => {
+  setProfileImage("/images/default_img.png");
+  setProfileFile(null);
+  setRemoveProfileImage(true); // ✅ important for API
+  if (fileInputRef.current) {
     fileInputRef.current.value = null;
-  };
+  }
+};
 
   const handleResumeChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     if (file.type !== "application/pdf") {
       toast.error("Only PDF files are allowed for resume.");
       e.target.value = null;
       return;
     }
+
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Resume must be less than 2 MB.");
       e.target.value = null;
       return;
     }
+
     setResumeFile(file);
+    setExistingResume(null); // ✅ remove old when new uploaded
+    setRemoveResume(false);
+  };
+
+  const handleRemoveResume = () => {
+    setExistingResume(null);
+    setResumeFile(null);
+    setRemoveResume(true);
   };
 
   const handleExperienceYearsChange = (e) => {
@@ -376,22 +434,38 @@ const Profile = () => {
   };
 
   const handleEducationChange = (id, field, value) =>
-    setEducationRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
-  const addEducationRow = () => setEducationRows((prev) => [...prev, emptyEducation()]);
-  const removeEducationRow = (id) => setEducationRows((prev) => prev.filter((r) => r.id !== id));
+    setEducationRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
+    );
+  const addEducationRow = () =>
+    setEducationRows((prev) => [...prev, emptyEducation()]);
+  const removeEducationRow = (id) =>
+    setEducationRows((prev) => prev.filter((r) => r.id !== id));
 
   const handleExperienceChange = (id, field, value) =>
-    setExperienceRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
-  const addExperienceRow = () => setExperienceRows((prev) => [...prev, emptyExperience()]);
-  const removeExperienceRow = (id) => setExperienceRows((prev) => prev.filter((r) => r.id !== id));
+    setExperienceRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
+    );
+  const addExperienceRow = () =>
+    setExperienceRows((prev) => [...prev, emptyExperience()]);
+  const removeExperienceRow = (id) =>
+    setExperienceRows((prev) => prev.filter((r) => r.id !== id));
 
   const validateAllYears = () => {
     for (const row of educationRows) {
       const err = validateYears(row.start_year, row.end_year);
-      if (err) { toast.error(`Education: ${err}`); return false; }
+      if (err) {
+        toast.error(`Education: ${err}`);
+        return false;
+      }
     }
     for (const row of experienceRows) {
-      if (row.start_date && !row.currently_working && row.end_date && row.end_date < row.start_date) {
+      if (
+        row.start_date &&
+        !row.currently_working &&
+        row.end_date &&
+        row.end_date < row.start_date
+      ) {
         toast.error("Experience: End date cannot be before start date.");
         return false;
       }
@@ -399,42 +473,320 @@ const Profile = () => {
     return true;
   };
 
-  const handleUpdateProfile = () => {
-    if (!validateAllYears()) return;
-    const formData = new FormData();
-    if (profileFile) formData.append("profile_image", profileFile);
-    if (resumeFile) formData.append("resume", resumeFile);
-    formData.append("phone", phone);
-    formData.append("date_of_birth", dateOfBirth);
-    formData.append("gender", gender);
-    formData.append("address", address);
-    formData.append("city", city);
-    formData.append("state", state);
-    formData.append("country", country);
-    formData.append("latitude", latitude);
-    formData.append("longitude", longitude);
-    formData.append("qualification", qualification);
-    formData.append("specialization", specialization);
-    formData.append("experience_years", experienceYears);
-    formData.append("current_school", currentSchool);
-    formData.append("bio", bio);
-    formData.append("social_links", JSON.stringify(socialLinks));
-    formData.append("education", JSON.stringify(educationRows));
-    formData.append("experience", JSON.stringify(experienceRows));
-    console.log("Submitting profile...", Object.fromEntries(formData));
-    // toast.success("Profile updated successfully!");
+  /*----- Fetch Profile -------*/
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setIsLoading(true);
+
+      const data = await api.get("/get/profile");
+
+      if (data?.status) {
+        const p = data?.data?.profile;
+
+        console.log("PROFILE:", p); //  add this once
+
+        setPhone(p?.phone || "");
+        setDateOfBirth(p?.date_of_birth?.split("T")[0] || "");
+        setGender(p?.gender || "");
+        setAddress(p?.address || "");
+        // ← add this to sync the uncontrolled input after data loads
+        if (addressInputRef.current) {
+          addressInputRef.current.value = p?.address || "";
+        }
+        setCity(p?.city || "");
+        // setState(p?.state || "");
+        setSuburb(p?.suburb || "");
+        setCountry(p?.country || "");
+
+        setQualification(p?.qualification || "");
+        setSpecialization(p?.specialization || "");
+        setExperienceYears(p?.experience_years || "");
+        setCurrentSchool(p?.current_school || "");
+        setBio(p?.bio || "");
+
+        setProfileCompletion(p?.profile_completion || 0);
+
+        if (p?.resume) {
+          setExistingResume(p.resume); // URL or file path
+        }
+
+        // Education
+        if (p?.educations?.length) {
+          setEducationRows(
+            p.educations.map((edu) => ({
+              id: edu.id,
+              degree_name: edu.degree,
+              institution_name: edu.institution,
+              start_year: edu.start_year,
+              end_year: edu.end_year,
+              grade: edu.grade,
+            })),
+          );
+        }
+
+        // Experience
+        if (p?.experiences?.length) {
+          setExperienceRows(
+            p.experiences.map((exp) => ({
+              id: exp.id,
+              institution_name: exp.school_name,
+              role: exp.job_title,
+              start_date: exp.start_date,
+              end_date: exp.end_date,
+              currently_working: exp.is_current === 1,
+              description: exp.description || "",
+            })),
+          );
+        }
+
+        if (p?.profile_image) {
+          setProfileImage(p.profile_image);
+        }
+
+
+        if (p?.certificate?.length) {
+          const certMap = {};
+          p.certificate.forEach((cert) => {
+            const key = cert.certificate_name.toLowerCase().replace(" ", "_");
+            certMap[key] = cert;
+          });
+          setCertificates(certMap);
+        }
+
+
+
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdatePassword = () => {
+  /* ----- Update Profile -----*/
+
+  const handleUpdateProfile = async () => {
+    if (!validateAllYears()) return;
+
+    try {
+      setIsUpdating(true);
+
+      const formData = new FormData();
+
+      // ✅ Profile Image logic
+      if (removeProfileImage) {
+        formData.append("delete_profile", 1);
+        formData.append("profile_image", ""); // optional (depends on backend)
+      } else if (profileFile) {
+        formData.append("profile_image", profileFile);
+      }
+
+      // ✅ Resume logic (FIXED)
+      if (removeResume) {
+        formData.append("delete_resume", 1); // or null depending backend
+        formData.append("resume", ""); // or null depending backend
+      } else if (resumeFile) {
+        formData.append("resume", resumeFile);
+      }
+
+      formData.append("name", user.name);
+      formData.append("email", user.email);
+      formData.append("phone", phone);
+      formData.append("date_of_birth", dateOfBirth);
+      formData.append("gender", gender);
+      formData.append("address", address);
+      formData.append("city", city);
+      // formData.append("state", state);
+      formData.append("suburb", suburb);
+      formData.append("country", country);
+      formData.append("latitude", latitude);
+      formData.append("longitude", longitude);
+
+      formData.append("qualification", qualification);
+      formData.append("specialization", specialization);
+      formData.append("experience_years", experienceYears);
+      formData.append("current_school", currentSchool);
+      formData.append("bio", bio);
+
+      formData.append("social_links", JSON.stringify(socialLinks));
+
+      // Education
+      educationRows.forEach((edu, index) => {
+        formData.append(`educations[${index}][degree]`, edu.degree_name);
+        formData.append(
+          `educations[${index}][institution]`,
+          edu.institution_name,
+        );
+        formData.append(`educations[${index}][start_year]`, edu.start_year);
+        formData.append(`educations[${index}][end_year]`, edu.end_year);
+        formData.append(`educations[${index}][grade]`, edu.grade);
+      });
+
+      // Experience
+      experienceRows.forEach((exp, index) => {
+        formData.append(`experiences[${index}][job_title]`, exp.role);
+        formData.append(
+          `experiences[${index}][school_name]`,
+          exp.institution_name,
+        );
+        formData.append(`experiences[${index}][start_date]`, exp.start_date);
+        formData.append(
+          `experiences[${index}][end_date]`,
+          exp.currently_working ? "" : exp.end_date,
+        );
+        formData.append(
+          `experiences[${index}][is_current]`,
+          exp.currently_working ? 1 : 0,
+        );
+        formData.append(`experiences[${index}][description]`, exp.description);
+      });
+
+      const data = await api.post("/update/profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (data?.status) {
+        toast.success("Profile updated successfully!");
+        fetchProfile();
+      } else {
+        toast.error(data?.message || "Update failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setIsUpdating(false); // ✅ IMPORTANT
+    }
+  };
+
+
+  /*--- Update & Delete Certificates ----*/
+
+const handleCertificateChange = async (certName, key, file) => {
+  if (!file) return;
+
+  const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+  if (!allowedTypes.includes(file.type)) {
+    toast.error("Only PDF, JPG, PNG files are allowed.");
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error("File must be less than 2 MB.");
+    return;
+  }
+
+  try {
+    setCertUploading((prev) => ({ ...prev, [key]: true }));
+
+    const formData = new FormData();
+    formData.append("certificate_file[]", file);
+    formData.append("certificate_name[]", certName);
+
+    const data = await api.post("/update/certificate", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    if (data?.status) {
+      toast.success(data.message || `${certName} uploaded successfully!`);
+      // toast.success(`${certName} uploaded successfully!`);
+
+      // ✅ Auto update state without page refresh
+      const newCert = data?.data?.[0]; // adjust based on your API response shape
+      if (newCert) {
+        setCertificates((prev) => ({ ...prev, [key]: newCert }));
+      } else {
+        fetchProfile(); // fallback
+      }
+    } else {
+      toast.error(data?.message || "Upload failed");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Something went wrong");
+  } finally {
+    setCertUploading((prev) => ({ ...prev, [key]: false }));
+  }
+};
+
+const handleCertificateDelete = async (certId, key) => {
+  try {
+    setCertDeleting((prev) => ({ ...prev, [key]: true }));
+
+    const data = await api.delete(`/delete/certificate/${certId}`);
+
+    if (data?.status) {
+      toast.success("Certificate deleted successfully!");
+
+      // ✅ Auto remove from state without page refresh
+      setCertificates((prev) => ({ ...prev, [key]: null }));
+    } else {
+      toast.error(data?.message || "Delete failed");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Something went wrong");
+  } finally {
+    setCertDeleting((prev) => ({ ...prev, [key]: false }));
+  }
+};
+
+
+
+  /* ----- Update Password -----*/
+
+  const handleUpdatePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
-      toast.error("All password fields are required.");
+      toast.error("All fields are required");
       return;
     }
-    if (newPassword !== confirmPassword) {
-      toast.error("New password and confirm password do not match.");
-      return;
+
+    try {
+      setIsPasswordUpdating(true);
+
+      const formData = new FormData();
+      formData.append("old_password", oldPassword);
+      formData.append("new_password", newPassword);
+      formData.append("new_password_confirmation", confirmPassword);
+
+      const data = await api.post("/update/password", formData);
+
+      if (data?.status) {
+        toast.success("Password updated successfully");
+
+        // clear fields
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        // ✅ HANDLE MULTIPLE ERRORS CLEANLY
+        if (data?.errors) {
+          const allErrors = Object.values(data.errors).flat().join("\n");
+          toast.error(allErrors); // single toast
+        } else {
+          toast.error(data?.message || "Update failed");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+
+      // ✅ SAME FOR CATCH
+      if (err?.errors) {
+        const allErrors = Object.values(err.errors).flat().join("\n");
+        toast.error(allErrors);
+      } else {
+        toast.error(err?.message || "Something went wrong");
+      }
+    } finally {
+      setIsPasswordUpdating(false);
     }
-    toast.success("Password updated successfully!");
   };
 
   return (
@@ -446,31 +798,151 @@ const Profile = () => {
             <div className="row">
               <h1 className="mb-3 sec-title text-center">My Profile</h1>
 
+
               <div className="col-lg-4 col-xl-3 mb-4 mb-lg-0">
                 <DashSidebar />
               </div>
 
               <div className="col-lg-8 col-xl-9 mb-4 mb-lg-0">
-                <div className="row">
-                  {/* PERSONAL DETAILS */}
-                  <div className="col-12 mb-4">
-                    <div className="card border-0 h-100">
-                      <h5 className="fw-semibold text_blue">Personal Details</h5>
+                {isLoading ? (
+                  <ProfileSkeleton />
+                ) : (
+                  <div className="row">
+                    {/* PERSONAL DETAILS */}
+                    <div className="col-12 mb-4">
+                      <div className="card border-0 h-100">
+                        <h5 className="fw-semibold text_blue">
+                          Personal Details
+                        </h5>
 
-                      <div className="d-flex align-items-sm-end mt-3 profile_image_wrapper border-bottom pb-3">
-                        <div className="profile_image position-relative me-4">
-                          <img src={profileImage} className="w-100 h-100" alt="Profile Preview" />
+                        {/* <div className="d-flex align-items-sm-end mt-3 profile_image_wrapper border-bottom pb-3">
+                          <div className="profile_image position-relative me-4">
+                            <img
+                              src={profileImage}
+                              className="w-100 h-100"
+                              alt="Profile Preview"
+                            />
+                            {profileImage !== "/images/default_img.png" && (
+                              <div
+                                className="remove_profile"
+                                onClick={handleRemoveImage}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <i className="fa-solid fa-trash"></i>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <input
+                              type="file"
+                              id="upload_image"
+                              ref={fileInputRef}
+                              accept="image/jpeg,image/png"
+                              style={{ display: "none" }}
+                              onChange={handleImageChange}
+                            />
+                            <button
+                              className="btn-post mb-2"
+                              onClick={handleUploadClick}
+                            >
+                              Upload Image <i className="fas fa-upload"></i>
+                            </button>
+                            <p className="mb-0">
+                              Image must be JPEG or PNG format and less than 2
+                              MB.
+                            </p>
+                          </div>
+                        </div> */}
+
+                        {/* Profile Image with Completion Ring */}
+
+                       <div className="d-flex align-items-sm-end mt-3 profile_image_wrapper border-bottom pb-4">
+                        <div className="position-relative me-4" style={{ width: 110, height: 110, flexShrink: 0 }}>
+                          
+                          <svg
+                            width="110"
+                            height="110"
+                            viewBox="0 0 110 110"
+                            style={{ position: "absolute", top: 0, left: 0, zIndex: 2 }}
+                          >
+                            <circle
+                              cx="55" cy="55" r="51"
+                              fill="none"
+                              stroke="#e0e0e0"
+                              strokeWidth="5"
+                            />
+                            <circle
+                              cx="55" cy="55" r="51"
+                              fill="none"
+                              stroke={profileCompletion === 100 ? "#43a047" : profileCompletion >= 60 ? "#f9a825" : "#ef5350"}
+                              strokeWidth="5"
+                              strokeLinecap="round"
+                              strokeDasharray={`${2 * Math.PI * 51}`}
+                              strokeDashoffset={`${2 * Math.PI * 51 * (1 - profileCompletion / 100)}`}
+                              transform="rotate(-90 55 55)"
+                              style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s ease" }}
+                            />
+                          </svg>
+
+                          <div
+                            className="profile_image"
+                            style={{
+                              position: "absolute",
+                              top: 5, left: 5,
+                              width: 100, height: 100,
+                              borderRadius: "50%",
+                              overflow: "hidden",
+                              zIndex: 1,
+                            }}
+                          >
+                            <img
+                              src={profileImage}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              alt="Profile Preview"
+                            />
+                          </div>
+
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: -20,
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              background: profileCompletion === 100 ? "#43a047" : profileCompletion >= 60 ? "#f9a825" : "#ef5350",
+                              color: "#fff",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: 20,
+                              whiteSpace: "nowrap",
+                              zIndex: 3,
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                            }}
+                          >
+                            {profileCompletion}%
+                          </div>
+
                           {profileImage !== "/images/default_img.png" && (
                             <div
-                              className="remove_profile"
                               onClick={handleRemoveImage}
-                              style={{ cursor: "pointer" }}
+                              style={{
+                                position: "absolute",
+                                top: -6, right: 0,
+                                zIndex: 4,
+                                background: "#ef5350",
+                                borderRadius: "50%",
+                                width: 22, height: 22,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                cursor: "pointer",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                              }}
                             >
-                              <i className="fa-solid fa-trash"></i>
+                              <i className="fa-solid fa-trash" style={{ color: "#fff", fontSize: 11 }}></i>
                             </div>
                           )}
                         </div>
-                        <div>
+
+                        <div className="ms-3 mt-2">
                           <input
                             type="file"
                             id="upload_image"
@@ -486,245 +958,559 @@ const Profile = () => {
                         </div>
                       </div>
 
-                      <div className="row mt-3 mb-3">
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Full Name</label>
-                          <input type="text" className="form-control" value={user?.name || ""} readOnly />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Email</label>
-                          <input type="email" className="form-control" value={user?.email || ""} readOnly />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Phone Number</label>
-                          <PhoneInput
-                            country={"au"}
-                            value={phone}
-                            onChange={(val) => setPhone(val)}
-                            inputClass="form-control w-100"
-                            containerClass="phone-input-container"
-                            enableSearch
-                            searchPlaceholder="Search country..."
-                          />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Gender</label>
-                          <select className="form-select" value={gender} onChange={(e) => setGender(e.target.value)}>
-                            <option value="">Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Others</option>
-                          </select>
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Date of Birth</label>
-                          <input
-                            type="date"
-                            className="form-control"
-                            value={dateOfBirth}
-                            onChange={(e) => setDateOfBirth(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Upload Resume</label>
-                          <input
-                            type="file"
-                            className="form-control upload_resume_input"
-                            accept="application/pdf"
-                            onChange={handleResumeChange}
-                          />
-                          <small className="text-muted">(PDF only, max size 2 MB)</small>
-                        </div>
-
-                        <div className="col-12 mb-4">
-                          <label className="mb-2">Address</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Start typing your address..."
-                            ref={addressInputRef}
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                          />
-                          <small className="text-muted">
-                            Select from suggestions to auto-fill city, state & country.
-                          </small>
-                        </div>
-
-                        <div className="col-md-4 mb-4">
-                          <label className="mb-2">City</label>
-                          <input type="text" className="form-control" placeholder="i.e Sydney" value={city} onChange={(e) => setCity(e.target.value)} />
-                        </div>
-
-                        <div className="col-md-4 mb-4">
-                          <label className="mb-2">State</label>
-                          <input type="text" className="form-control" placeholder="i.e New South Wales" value={state} onChange={(e) => setState(e.target.value)} />
-                        </div>
-
-                        <div className="col-md-4 mb-4">
-                          <label className="mb-2">Country</label>
-                          <input type="text" className="form-control" placeholder="i.e Australia" value={country} onChange={(e) => setCountry(e.target.value)} />
-                        </div>
-                      </div>
-
-                      {/* PROFESSIONAL DETAILS */}
-                      <h5 className="fw-semibold text_blue">Professional Details</h5>
-                      <div className="row mt-3 mb-3">
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Qualification</label>
-                          <input type="text" className="form-control" placeholder="i.e Bachelor of Arts" value={qualification} onChange={(e) => setQualification(e.target.value)} />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Specialization</label>
-                          <input type="text" className="form-control" placeholder="i.e Painting" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Experience (In Years)</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="i.e 10"
-                            maxLength={2}
-                            value={experienceYears}
-                            onChange={handleExperienceYearsChange}
-                          />
-                        </div>
-
-                        <div className="col-md-6 mb-4">
-                          <label className="mb-2">Current Company / Institution</label>
-                          <input type="text" className="form-control" placeholder="i.e XYZ Institution Ltd." value={currentSchool} onChange={(e) => setCurrentSchool(e.target.value)} />
-                        </div>
-
-                        <div className="col-12 mb-4">
-                          <label className="mb-2">About Me</label>
-                          <textarea rows={5} className="form-control" placeholder="Write about yourself..." value={bio} onChange={(e) => setBio(e.target.value)} />
-                        </div>
-
-                        {["Facebook", "Instagram", "LinkedIn", "Twitter"].map((item) => (
-                          <div className="col-lg-6 mb-4" key={item}>
-                            <label className="mb-2">{item} URL</label>
+                        <div className="row mt-3 mb-3">
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Full Name</label>
                             <input
                               type="text"
                               className="form-control"
-                              placeholder={`https://${item.toLowerCase()}.com`}
-                              value={socialLinks[item.toLowerCase()]}
+                              value={user?.name || ""}
+                              readOnly
+                            />
+                          </div>
+
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Email</label>
+                            <input
+                              type="email"
+                              className="form-control"
+                              value={user?.email || ""}
+                              readOnly
+                            />
+                          </div>
+
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Phone Number</label>
+                            <PhoneInput
+                              country={"au"}
+                              value={phone}
+                              onChange={(val) => setPhone(val)}
+                              inputClass="form-control w-100"
+                              containerClass="phone-input-container"
+                              enableSearch
+                              searchPlaceholder="Search country..."
+                            />
+                          </div>
+
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Gender</label>
+                            <select
+                              className="form-select"
+                              value={gender}
+                              onChange={(e) => setGender(e.target.value)}
+                            >
+                              <option value="">Select</option>
+                              <option value="male">Male</option>
+                              <option value="female">Female</option>
+                              <option value="other">Others</option>
+                            </select>
+                          </div>
+
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Date of Birth</label>
+                            <input
+                              type="date"
+                              className="form-control"
+                              value={dateOfBirth}
+                              onChange={(e) => setDateOfBirth(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Upload Resume</label>
+
+                            <input
+                              type="file"
+                              className="form-control upload_resume_input"
+                              accept="application/pdf"
+                              onChange={handleResumeChange}
+                            />
+
+                            <small className="text-muted">
+                              (PDF only, max size 2 MB)
+                            </small>
+
+                            {/* Show newly selected file */}
+                            {resumeFile && (
+                              <div className="mb-2">📄 {resumeFile.name}</div>
+                            )}
+
+                            {/* Show existing resume */}
+                            {existingResume && (
+                              <div className="d-flex align-items-center mb-2">
+                                <a
+                                  href={existingResume}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="me-2 text-decoration-none"
+                                >
+                                  <small>
+                                    {" "}
+                                    <File size={16} />{" "}
+                                    {existingResume.split("/").pop()}
+                                  </small>
+                                </a>
+
+                                <i
+                                  className="fa fa-trash text-danger"
+                                  style={{ cursor: "pointer" }}
+                                  onClick={handleRemoveResume}
+                                ></i>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* <LoadScript
+                              googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+                              libraries={["places"]}
+                            >
+                              <div className="col-12 mb-4">
+                                <label className="mb-2">Address</label>
+                                <Autocomplete
+                                  onLoad={(auto) => setAutocomplete(auto)}
+                                  onPlaceChanged={onPlaceChanged}
+                                  options={{
+                                    componentRestrictions: { country: "au" },
+                                    types: ["address"],
+                                  }}
+                                >
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Start typing your address..."
+                                    ref={addressInputRef}
+                                    defaultValue={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                  />
+                                </Autocomplete>
+                                <small className="text-muted">
+                                  Select from suggestions to auto-fill city, suburb & country.
+                                </small>
+                              </div>
+                            </LoadScript> */}
+
+                            <div className="col-12 mb-4">
+                            <label className="mb-2">Address</label>
+                            {isLoaded ? (
+                              <Autocomplete
+                                onLoad={(auto) => setAutocomplete(auto)}
+                                onPlaceChanged={onPlaceChanged}
+                                options={{
+                                  componentRestrictions: { country: "au" },
+                                  types: ["address"],
+                                }}
+                              >
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="Start typing your address..."
+                                  defaultValue={address}
+                                  onChange={(e) => setAddress(e.target.value)}
+                                />
+                              </Autocomplete>
+                            ) : (
+                              <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Loading..."
+                                disabled
+                              />
+                            )}
+                            <small className="text-muted">
+                              Select from suggestions to auto-fill city, suburb & country.
+                            </small>
+                          </div>
+
+                          <div className="col-md-4 mb-4">
+                            <label className="mb-2">City</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e Sydney"
+                              value={city}
+                              onChange={(e) => setCity(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="col-md-4 mb-4">
+                            <label className="mb-2">Suburb</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e Bondi"
+                              value={suburb}
+                              onChange={(e) => setSuburb(e.target.value)} 
+                            />
+                          </div>
+
+                          <div className="col-md-4 mb-4">
+                            <label className="mb-2">Country</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e Australia"
+                              value={country}
+                              onChange={(e) => setCountry(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        {/* PROFESSIONAL DETAILS */}
+                        <h5 className="fw-semibold text_blue">
+                          Professional Details
+                        </h5>
+                        <div className="row mt-3 mb-3">
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Qualification</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e Bachelor of Arts"
+                              value={qualification}
+                              onChange={(e) => setQualification(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">Specialization</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e Painting"
+                              value={specialization}
                               onChange={(e) =>
-                                setSocialLinks((prev) => ({ ...prev, [item.toLowerCase()]: e.target.value }))
+                                setSpecialization(e.target.value)
                               }
                             />
                           </div>
-                        ))}
-                      </div>
 
-                      {/* EDUCATION */}
-                      <h5 className="fw-semibold text_blue">Education</h5>
-                      <div className="mt-3 mb-3">
-                        {educationRows.map((row) => (
-                          <EducationRow
-                            key={row.id}
-                            row={row}
-                            onChange={handleEducationChange}
-                            onRemove={removeEducationRow}
-                            showRemove={educationRows.length > 1}
-                          />
-                        ))}
-                        <button type="button" className="btn-post w-auto btn-sm px-3" onClick={addEducationRow}>
-                           Add Education <i className="fa fa-plus ms-1"></i>
-                        </button>
-                      </div>
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">
+                              Experience (In Years)
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e 10"
+                              maxLength={2}
+                              value={experienceYears}
+                              onChange={handleExperienceYearsChange}
+                            />
+                          </div>
 
-                      {/* WORK EXPERIENCE */}
-                      <h5 className="fw-semibold text_blue">Work Experience</h5>
-                      <div className="mt-3 mb-3">
-                        {experienceRows.map((row) => (
-                          <ExperienceRow
-                            key={row.id}
-                            row={row}
-                            onChange={handleExperienceChange}
-                            onRemove={removeExperienceRow}
-                            showRemove={experienceRows.length > 1}
-                          />
-                        ))}
-                        <button type="button" className="btn-post w-auto btn-sm px-3" onClick={addExperienceRow}>
-                           Add Experience <i className="fa fa-plus ms-1"></i>
-                        </button>
-                      </div>
+                          <div className="col-md-6 mb-4">
+                            <label className="mb-2">
+                              Current Company / Institution
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="i.e XYZ Institution Ltd."
+                              value={currentSchool}
+                              onChange={(e) => setCurrentSchool(e.target.value)}
+                            />
+                          </div>
 
-                      <div className="d-flex justify-content-end mt-4">
-                        <button type="button" className="btn-login px-3" onClick={handleUpdateProfile}>
-                          Update Profile <i className="fas fa-arrow-right-long"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                
-                
-                  {/* CHANGE PASSWORD */}
-                  <div className="col-xl-12 d-flex flex-column mb-4 mb-xl-0">
-                    <div className="card border-0 card_height password_card">
-                      <h5 className="fw-semibold text_blue">Change Password</h5>
-                      <div className="row mt-3">
-                        <div className="col-lg-6 mb-4 position-relative">
-                          <label className="mb-2">Old Password</label>
-                          <input
-                            type={showOld ? "text" : "password"}
-                            className="form-control"
-                            autoComplete="current-password"
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                          />
-                          <i
-                            className={`fa ${showOld ? "fa-eye" : "fa-eye-slash"} position-absolute`}
-                            onClick={() => setShowOld(!showOld)}
-                          />
+                          <div className="col-12 mb-4">
+                            <label className="mb-2">About Me</label>
+                            <textarea
+                              rows={5}
+                              className="form-control"
+                              placeholder="Write about yourself..."
+                              value={bio}
+                              onChange={(e) => setBio(e.target.value)}
+                            />
+                          </div>
                         </div>
 
-                        <div className="col-lg-6 mb-4 position-relative">
-                          <label className="mb-2">New Password</label>
-                          <input
-                            type={showNew ? "text" : "password"}
-                            className="form-control"
-                            autoComplete="new-password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                          />
-                          <i
-                            className={`fa ${showNew ? "fa-eye" : "fa-eye-slash"} position-absolute`}
-                            onClick={() => setShowNew(!showNew)}
-                          />
+                        {/* EDUCATION */}
+                        <h5 className="fw-semibold text_blue">Education</h5>
+                        <div className="mt-3 mb-3">
+                          {educationRows.map((row) => (
+                            <EducationRow
+                              key={row.id}
+                              row={row}
+                              onChange={handleEducationChange}
+                              onRemove={removeEducationRow}
+                              showRemove={educationRows.length > 1}
+                            />
+                          ))}
+                          <button
+                            type="button"
+                            className="btn-post w-auto btn-sm px-3"
+                            onClick={addEducationRow}
+                          >
+                            Add Education <i className="fa fa-plus ms-1"></i>
+                          </button>
                         </div>
 
-                        <div className="col-12 mb-4 position-relative">
-                          <label className="mb-2">Confirm Password</label>
-                          <input
-                            type={showConfirm ? "text" : "password"}
-                            className="form-control"
-                            autoComplete="new-password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                          />
-                          <i
-                            className={`fa ${showConfirm ? "fa-eye" : "fa-eye-slash"} position-absolute`}
-                            onClick={() => setShowConfirm(!showConfirm)}
-                          />
+                        {/* WORK EXPERIENCE */}
+                        <h5 className="fw-semibold text_blue">
+                          Work Experience
+                        </h5>
+                        <div className="mt-3 mb-3">
+                          {experienceRows.map((row) => (
+                            <ExperienceRow
+                              key={row.id}
+                              row={row}
+                              onChange={handleExperienceChange}
+                              onRemove={removeExperienceRow}
+                              showRemove={experienceRows.length > 1}
+                            />
+                          ))}
+                          <button
+                            type="button"
+                            className="btn-post w-auto btn-sm px-3"
+                            onClick={addExperienceRow}
+                          >
+                            Add Experience <i className="fa fa-plus ms-1"></i>
+                          </button>
                         </div>
 
-                        <div className="d-flex justify-content-end">
-                          <button type="button" className="btn-login px-3" onClick={handleUpdatePassword}>
-                            Update Password <i className="fas fa-arrow-right-long"></i>
+                        <div className="d-flex justify-content-end mt-4">
+                          <button
+                            type="button"
+                            className="btn-login px-3"
+                            onClick={handleUpdateProfile}
+                            disabled={isUpdating}
+                          >
+                            {isUpdating ? (
+                              <>
+                                Updating...
+                                <i className="fas fa-spinner fa-spin ms-2"></i>
+                              </>
+                            ) : (
+                              <>
+                                Update Profile
+                                <i className="fas fa-arrow-right-long ms-2"></i>
+                              </>
+                            )}
                           </button>
                         </div>
                       </div>
                     </div>
-                  </div>
+
+
+{/* CERTIFICATES UPLOAD */}
+<div className="col-xl-12 d-flex flex-column mb-4">
+  <div className="card border-0 card_height password_card">
+    <h5 className="fw-semibold text_blue">Certificates</h5>
+
+    <div className="row mt-3">
+      {[
+        { label: "WWCC", key: "wwcc" },
+        { label: "CPR", key: "cpr" },
+        { label: "First Aid", key: "first_aid" },
+        { label: "Police Check", key: "police_check" },
+      ].map(({ label, key }) => {
+        const existing = certificates[key];
+        const isPdf = existing?.certificate_file?.endsWith(".pdf");
+        const isUploading = certUploading[key];
+        const isDeleting = certDeleting[key];
+
+        return (
+          <div className="col-lg-6 mb-4" key={key}>
+            <div className="certificate_box p-3 rounded h-100">
+
+              {/* Header */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h6 className="fw-semibold mb-0">{label}</h6>
+                {existing?.status && (
+                  <span
+                    className={`badge ${
+                      existing.status === "verified" || existing.status === "approved"
+                        ? "bg-success"
+                        : existing.status === "rejected"
+                          ? "bg-danger"
+                          : "bg-warning text-dark"
+                    }`}
+                  >
+                    {existing.status.charAt(0).toUpperCase() + existing.status.slice(1)}
+                  </span>
+                )}
+              </div>
+
+              {/* Upload Area — show if no existing cert */}
+              {!existing && (
+                <label
+                  htmlFor={`cert_${key}`}
+                  className="upload_area text-center p-4 rounded d-block"
+                  style={{ cursor: isUploading ? "not-allowed" : "pointer" }}
+                >
+                  {isUploading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin fa-2x mb-2 text-muted"></i>
+                      <p className="mb-1 fw-medium">Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud size={32} className="mb-2 text-muted" />
+                      <p className="mb-1 fw-medium">Upload Certificate</p>
+                      <small className="text-muted">PDF, JPG, PNG (Max 2MB)</small>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    id={`cert_${key}`}
+                    accept="application/pdf,image/jpeg,image/png"
+                    style={{ display: "none" }}
+                    disabled={isUploading}
+                    onChange={(e) =>
+                      handleCertificateChange(label, key, e.target.files[0])
+                    }
+                  />
+                </label>
+              )}
+
+              {/* Existing File Preview */}
+              {existing && (
+                <div className="uploaded_file d-flex align-items-center justify-content-between mt-2 p-2 rounded">
+                  <a
+                    href={existing.certificate_file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="file_name text-decoration-none d-flex align-items-center gap-2"
+                  >
+                    {isPdf ? (
+                      <File size={16} />
+                    ) : (
+                      <img
+                        src={existing.certificate_file}
+                        alt={label}
+                        style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4 }}
+                      />
+                    )}
+                    <small>{existing.certificate_file.split("/").pop()}</small>
+                  </a>
+
+                  {/* Delete button with spinner */}
+                  {isDeleting ? (
+                    <i className="fas fa-spinner fa-spin text-danger"></i>
+                  ) : (
+                    <Trash2
+                      size={18}
+                      className="text-danger"
+                      style={{ cursor: "pointer", flexShrink: 0 }}
+                      onClick={() => handleCertificateDelete(existing.id, key)}
+                    />
+                  )}
                 </div>
+              )}
+
+              {/* Replace button */}
+              {existing && !isUploading && (
+                <label
+                  htmlFor={`cert_reupload_${key}`}
+                  className="btn-post btn-sm mt-2 d-inline-flex align-items-center gap-1"
+                  style={{ cursor: "pointer", fontSize: 13 }}
+                >
+                  <UploadCloud size={14} /> Replace
+                  <input
+                    type="file"
+                    id={`cert_reupload_${key}`}
+                    accept="application/pdf,image/jpeg,image/png"
+                    style={{ display: "none" }}
+                    onChange={(e) =>
+                      handleCertificateChange(label, key, e.target.files[0])
+                    }
+                  />
+                </label>
+              )}
+
+              {/* Replace uploading state */}
+              {existing && isUploading && (
+                <div className="mt-2 d-flex align-items-center gap-2 text-muted" style={{ fontSize: 13 }}>
+                  <i className="fas fa-spinner fa-spin"></i> Uploading...
+                </div>
+              )}
+
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</div>
+
+                    {/* CHANGE PASSWORD */}
+                    <div className="col-xl-12 d-flex flex-column mb-4 mb-xl-0">
+                      <div className="card border-0 card_height password_card">
+                        <h5 className="fw-semibold text_blue">
+                          Change Password
+                        </h5>
+                        <div className="row mt-3">
+                          <div className="col-lg-6 mb-4 position-relative">
+                            <label className="mb-2">Old Password</label>
+                            <input
+                              type={showOld ? "text" : "password"}
+                              className="form-control"
+                              autoComplete="current-password"
+                              value={oldPassword}
+                              onChange={(e) => setOldPassword(e.target.value)}
+                            />
+                            <i
+                              className={`fa ${showOld ? "fa-eye" : "fa-eye-slash"} position-absolute`}
+                              onClick={() => setShowOld(!showOld)}
+                            />
+                          </div>
+
+                          <div className="col-lg-6 mb-4 position-relative">
+                            <label className="mb-2">New Password</label>
+                            <input
+                              type={showNew ? "text" : "password"}
+                              className="form-control"
+                              autoComplete="new-password"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                            />
+                            <i
+                              className={`fa ${showNew ? "fa-eye" : "fa-eye-slash"} position-absolute`}
+                              onClick={() => setShowNew(!showNew)}
+                            />
+                          </div>
+
+                          <div className="col-12 mb-4 position-relative">
+                            <label className="mb-2">Confirm Password</label>
+                            <input
+                              type={showConfirm ? "text" : "password"}
+                              className="form-control"
+                              autoComplete="new-password"
+                              value={confirmPassword}
+                              onChange={(e) =>
+                                setConfirmPassword(e.target.value)
+                              }
+                            />
+                            <i
+                              className={`fa ${showConfirm ? "fa-eye" : "fa-eye-slash"} position-absolute`}
+                              onClick={() => setShowConfirm(!showConfirm)}
+                            />
+                          </div>
+
+                          <div className="d-flex justify-content-end">
+                            <button
+                              type="button"
+                              className="btn-login px-3"
+                              onClick={handleUpdatePassword}
+                              disabled={isPasswordUpdating}
+                            >
+                              {isPasswordUpdating ? (
+                                <>
+                                  Updating...
+                                  <i className="fas fa-spinner fa-spin ms-2"></i>
+                                </>
+                              ) : (
+                                <>
+                                  Update Password{" "}
+                                  <i className="fas fa-arrow-right-long"></i>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

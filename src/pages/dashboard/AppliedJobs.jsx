@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import JobCardSkeleton from "../../components/skeletons/JobCardSkeleton";
 import api from "../../services/api";
+import { Link } from "react-router-dom";
 
 const AppliedJobs = () => {
+  const currency = import.meta.env.VITE_CURRENCY;
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -162,11 +164,11 @@ const AppliedJobs = () => {
 
                               {/* INFO */}
                               <div className="job_info">
-                                <h5>{job.title}</h5>
+                                <h5><Link to={`/job/${job.slug}`}>{job.title}</Link></h5>
                                 <p className="company">{job.job_category}</p>
 
                                 <p className="salary">
-                                  ${job.salary_min} - ${job.salary_max} (
+                                  {currency}{job.salary_min} - {currency}{job.salary_max} (
                                   {job.salary_type})
                                 </p>
 

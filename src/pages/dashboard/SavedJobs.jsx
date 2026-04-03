@@ -16,6 +16,7 @@ import JobCardSkeleton from "../../components/skeletons/JobCardSkeleton";
 import { Link } from "react-router-dom";
 
 const SavedJobs = () => {
+  const currency = import.meta.env.VITE_CURRENCY;
   const [savedJobs, setSavedJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
@@ -134,7 +135,7 @@ const SavedJobs = () => {
                               </p>
 
                               <p className="salary">
-                                ${job.salary_min} - ${job.salary_max} (
+                                {currency}{job.salary_min} - {currency}{job.salary_max} (
                                 {job.salary_type})
                               </p>
 

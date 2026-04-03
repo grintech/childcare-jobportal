@@ -116,12 +116,13 @@
 .profile_image{
     height: 120px;
     width: 120px;
-    border-radius: 10px;
+    border-radius: 50%;
 }
 .profile_image img{
-    border-radius: 10px;
+    border-radius: 50%;
     object-fit: cover;
     border: 1px solid #ccc;
+    padding: 3px;
 }
 .profile_image .remove_profile{
     position: absolute;
@@ -179,6 +180,39 @@
 .profile_page .upload_resume_input:hover{
     background-color: #e9ecef !important;
 }
+
+
+
+.profile_page .certificate_box {
+  background: var(--light);
+  border: 1px solid #e6e6e6;
+}
+
+.profile_page .upload_area {
+  /* border: 2px dashed #cfd8dc; */
+   border: 2px dashed var(--secondary);
+  background: #ffffff;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.profile_page .upload_area:hover {
+  border-color: var(--secondary);
+  background: #f5f9ff;
+}
+
+.profile_page .uploaded_file {
+  background: #eef3ff;
+  border: 1px solid #d6e0ff;
+}
+
+.profile_page .file_name {
+  font-size: 14px;
+  color: #333;
+}
+
+.profile_page .cursor-pointer {
+  cursor: pointer; }
 
 /*-------- Saved Jobs ------------*/
 
@@ -524,3 +558,4 @@ margin-top:15px;
 @media screen and (max-width:375px) {
   .react-tel-input .country-list{width: 250px !important;}
 }
+

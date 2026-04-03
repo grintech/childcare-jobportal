@@ -28,6 +28,7 @@ import JobCardSkeleton from "../components/skeletons/JobCardSkeleton";
 const JobDetailPage = () => {
   const { slug } = useParams();
   const { user, isAuthenticated } = useAuth();
+  const currency = import.meta.env.VITE_CURRENCY;
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -169,19 +170,40 @@ const stripHtml = (html) => {
 };
 
  
-  const maskPhone = (phone) => {
+const maskPhone = (phone, type = "full") => {
   if (!phone) return "";
 
-  const clean = phone.replace(/\s+/g, "");
+  const clean = phone.replace(/\D/g, "");
 
-    // Keep country code + last 3 digits
-    const last3 = clean.slice(-3);
-    const countryCode = clean.startsWith("+")
-      ? clean.slice(0, clean.indexOf(" ") > 0 ? clean.indexOf(" ") : 3)
-      : "+XX";
+  if (clean.length < 6) return phone;
 
-    return `${countryCode} xxx xxx ${last3}`;
-  };
+  let countryCode = "+XX";
+  let number = clean;
+
+  // Extract country code if present
+  if (clean.length > 10) {
+    countryCode = `+${clean.slice(0, clean.length - 10)}`;
+    number = clean.slice(-10);
+  }
+
+  const first3 = number.slice(0, 3);
+  const last3 = number.slice(-3);
+
+  switch (type) {
+    case "hideAll":
+      return `${countryCode} XXX XXX ${last3}`;
+
+    case "showFirst":
+      return `${countryCode} ${first3} XXX ${last3}`;
+
+    case "hideMiddle":
+      return `${countryCode} XXX XXX ${last3}`;
+
+    case "default":
+    default:
+      return ` ${first3} XXX XXX ${last3}`;
+  }
+};
 
   const maskEmail = (email) => {
     if (!email) return "";
@@ -363,7 +385,7 @@ const stripHtml = (html) => {
                             <p className="d-flex align-items-start gap-2">
                               <MapPin size={16} className="mt-1 text_theme" />
                               <span>
-                                <b>Salary:</b> <span className="text_theme">${job.salary_min} - ${job.salary_max} ({job.salary_type})</span>
+                                <b>Salary:</b> <span className="text_theme">{currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})</span>
                               </span>
                             </p>
 
@@ -442,7 +464,7 @@ const stripHtml = (html) => {
                                     </Link>
 
                                     <p className="salary">
-                                      ${item.salary_min} - ${item.salary_max} ({item.salary_type})
+                                      {currency}{item.salary_min} - {currency}{item.salary_max} ({item.salary_type})
                                     </p>
 
                                     <p className="location m-0">

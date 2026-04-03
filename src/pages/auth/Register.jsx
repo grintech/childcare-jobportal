@@ -73,6 +73,12 @@ useEffect(() => {
     setForm({ ...form, phone: value });
   };
 
+  const handleTaxChange = (e) => {
+  const value = e.target.value;
+  if (value.length > 15) return;
+  setForm({ ...form, tax_avin_number: value });
+};
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -91,6 +97,11 @@ useEffect(() => {
 
     if (form.password !== form.password_confirmation) {
       setErrorMsg("Passwords do not match");
+      return;
+    }
+
+    if (role === "principal" && form.tax_avin_number.trim().length > 15) {
+      setErrorMsg("Tax AVIN number must be 15 characters or less.");
       return;
     }
 
@@ -159,7 +170,7 @@ useEffect(() => {
             {!role && (
               <>
                 <div className="text-center mb-4">
-                  <h1 className="mb-1">Join as a client or jobseeker</h1>
+                  <h1 className="mb-1">Join as a employer or jobseeker</h1>
                 </div>
 
                 <div className="d-flex gap-3 mb-4">
@@ -178,7 +189,7 @@ useEffect(() => {
                       />
                     </div>
                     <h5 className="mt-3 text-start mb-0">
-                      I'm a client, hiring for a project
+                      I'm a employer, hiring for a project
                     </h5>
                   </div>
 
@@ -214,7 +225,7 @@ useEffect(() => {
                         !selectedRole
                           ? "Create Account"
                           : selectedRole === "principal"
-                          ? "Join as a Client"
+                          ? "Join as a Employer"
                           : "Apply as a Jobseeker"
                       }
                     </button>
@@ -235,7 +246,7 @@ useEffect(() => {
                 <div className="text-center mb-4">
                   <h1 className="mb-1">Create Account</h1>
                   <p className="text-muted mb-3">
-                    Register as a {role === "teacher" ? "Jobseeker" : "Client"}
+                    Register as a {role === "teacher" ? "Jobseeker" : "Employer"}
                   </p>
 
                   {!isPreselected && (
@@ -350,11 +361,15 @@ useEffect(() => {
                         <input
                           name="tax_avin_number"
                           value={form.tax_avin_number}
-                          onChange={handleChange}
+                          onChange={handleTaxChange}         
                           className="form-control"
                           placeholder="e.g. 12 345 678 901"
+                          maxLength={15}               
                           required
                         />
+                        <small className="text-muted pt-2">
+                          Maximum 15 characters allowed
+                        </small>
                       </div>
                     </>
                   )}

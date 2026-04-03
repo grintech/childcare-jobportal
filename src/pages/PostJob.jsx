@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-import { LoadScript, Autocomplete } from "@react-google-maps/api";
+// import { LoadScript, Autocomplete } from "@react-google-maps/api";
+import { Autocomplete, useJsApiLoader } from "@react-google-maps/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { UploadCloud, X, Eye, EyeOff } from "lucide-react";
@@ -10,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 
 // const BASE_URL = "https://childcrm.grincloudhost.com/public/api";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const LIBRARIES = ["places"];
 
 const INITIAL_FORM = {
   title: "",
@@ -25,7 +28,7 @@ const INITIAL_FORM = {
   expMax: "",
   address: "",
   city: "",
-  state: "",
+  suburb: "",
   country: "",
   suburb: "",
   latitude: "",
@@ -110,6 +113,11 @@ const PostJob = () => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [employerData, setEmployerData] = useState(INITIAL_EMPLOYER);
 
+  const { isLoaded } = useJsApiLoader({
+   googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+   libraries: LIBRARIES,
+ });
+
   const categories = [
     "Childcare Centre Manager",
     "Childcare Assistant Centre Manager",
@@ -120,73 +128,54 @@ const PostJob = () => {
   ];
 
   // ── Google Places ────────────────────────────────────────────────────────────
-  // const onPlaceChanged = () => {
-  //   if (!autocomplete) return;
-  //   const place = autocomplete.getPlace();
-  //   if (!place || !place.address_components) return;
 
-  //   let city = "", state = "", country = "";
-  //   place.address_components.forEach((comp) => {
-  //     const types = comp.types;
-  //     if (types.includes("locality")) city = comp.long_name;
-  //     if (!city && types.includes("administrative_area_level_2")) city = comp.long_name;
-  //     if (types.includes("administrative_area_level_1")) state = comp.long_name;
-  //     if (types.includes("country")) country = comp.long_name;
-  //   });
-
-  //   const lat = place.geometry?.location?.lat() ?? "";
-  //   const lng = place.geometry?.location?.lng() ?? "";
-
-  //   setFormData(prev => ({
-  //     ...prev,
-  //     address: place.formatted_address || "",
-  //     city, state, country, latitude: lat, longitude: lng,
-  //   }));
-  //   setIsAddressSelected(true);
-  //   if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
-  // };
-
-
-  const onPlaceChanged = () => {
+const onPlaceChanged = () => {
   if (!autocomplete) return;
   const place = autocomplete.getPlace();
   if (!place || !place.address_components) return;
 
-  let city = "", state = "", country = "", suburb = "";
+  let city = "", suburb = "", country = "";
+  let lat = "", lng = "";
 
-place.address_components.forEach((comp) => {
-  const types = comp.types;
-
-  // Suburb with multiple fallbacks
-  if (
-    types.includes("sublocality_level_1") ||
-    types.includes("sublocality") ||
-    types.includes("neighborhood") ||
-    types.includes("administrative_area_level_2")
-  ) {
-    if (!suburb) suburb = comp.long_name; // first match wins
+  if (place.geometry?.location) {
+    lat = place.geometry.location.lat();
+    lng = place.geometry.location.lng();
   }
 
-  if (types.includes("locality")) city = comp.long_name;
-  if (!city && types.includes("administrative_area_level_2")) city = comp.long_name;
-  if (types.includes("administrative_area_level_1")) state = comp.long_name;
-  if (types.includes("country")) country = comp.long_name;
-});
+  place.address_components.forEach((comp) => {
+    const types = comp.types;
 
-  const lat = place.geometry?.location?.lat() ?? "";
-  const lng = place.geometry?.location?.lng() ?? "";
+    if (types.includes("sublocality_level_1")) {
+      suburb = comp.long_name;
+    } else if (types.includes("sublocality") || types.includes("neighborhood")) {
+      if (!suburb) suburb = comp.long_name;
+    } else if (types.includes("administrative_area_level_2")) {
+      if (!suburb) suburb = comp.long_name;
+    }
+
+    if (types.includes("locality")) city = comp.long_name;
+    if (types.includes("country")) country = comp.long_name;
+  });
+
+  // Fallback: use city as suburb for CBD addresses
+  if (!suburb && city) suburb = city;
 
   setFormData(prev => ({
     ...prev,
     address: place.formatted_address || "",
-    city, state, country, latitude: lat, longitude: lng,
-    suburb, //  add to state
+    city,
+    suburb,
+    country,
+    latitude: lat,
+    longitude: lng,
   }));
 
   setIsAddressSelected(true);
   if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
 };
 
+
+/*---- HandleChange ------*/
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -203,7 +192,7 @@ place.address_components.forEach((comp) => {
     setFormData(prev => ({
       ...prev,
       address: value,
-      ...(!value && { city: "", state: "", country: "", latitude: "", longitude: "" }),
+      ...(!value && { city: "", suburb: "", country: "", latitude: "", longitude: "" }),
     }));
     setIsAddressSelected(false);
     if (errors.address) setErrors(prev => ({ ...prev, address: "" }));
@@ -357,7 +346,7 @@ if (formData.durationType && !formData.duration)
     payload.append("salary_negotiable", formData.negotiable ? 1 : 0);
     payload.append("address", formData.address);
     payload.append("country", formData.country);
-    payload.append("state", formData.state);
+    // payload.append("state", formData.state);
     payload.append("city", formData.city);
     payload.append("suburb", formData.suburb);
     payload.append("latitude", formData.latitude);
@@ -429,7 +418,11 @@ const handleSignup = async () => {
   if (!employerData.name.trim()) e.name = "Full name is required.";
   if (!employerData.designation.trim()) e.designation = "Designation is required.";
   if (!employerData.institution_name.trim()) e.institution_name = "Institution name is required.";
-  if (!employerData.tax_avin_number.trim()) e.tax_avin_number = "Tax / ABN number is required.";
+  if (!employerData.tax_avin_number.trim()) {
+    e.tax_avin_number = "Tax / ABN number is required.";
+  } else if (employerData.tax_avin_number.trim().length > 15) {
+    e.tax_avin_number = "Tax / ABN number must be 15 characters or less.";
+  }
   if (!employerData.email.trim()) e.email = "Email is required.";
   if (!employerData.phone.trim()) e.phone = "Phone is required.";
   if (!employerData.password.trim()) e.password = "Password is required.";
@@ -566,7 +559,7 @@ const handleTwoDigitNumber = (field, value) => {
 };
 
 const handleOnlyNumbers = (field, value) => {
-  let cleaned = value.replace(/\D/g, "").slice(0, 6);
+  let cleaned = value.replace(/\D/g, "").slice(0, 4);
 
   if (cleaned === "0") cleaned = "";
 
@@ -606,7 +599,6 @@ const handlePhoneChange = (value) => {
               ))}
             </div>
 
-            <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY} libraries={["places"]}>
               <form>
 
                 {/* ===== STEP 1 ===== */}
@@ -769,29 +761,44 @@ const handlePhoneChange = (value) => {
 
                       <div className="col-12">
                         <label>Enter address <span className="text-danger">*</span></label>
-                        <Autocomplete onLoad={(auto) => setAutocomplete(auto)} onPlaceChanged={onPlaceChanged}>
-                          <input
-                            type="text"
-                            className={`form-control ${errors.address ? "is-invalid" : ""}`}
-                            placeholder="Type your address..."
-                            value={formData.address}
-                            onChange={handleAddressChange}
-                          />
-                        </Autocomplete>
+                        {isLoaded ? (
+                          <Autocomplete
+                            onLoad={(auto) => setAutocomplete(auto)}
+                            onPlaceChanged={onPlaceChanged}
+                            options={{
+                              componentRestrictions: { country: "au" }, // ← Australia only
+                              types: ["address"],
+                            }}
+                          >
+                            <input
+                              type="text"
+                              className={`form-control ${errors.address ? "is-invalid" : ""}`}
+                              placeholder="Type your address..."
+                              value={formData.address}
+                              onChange={handleAddressChange}
+                            />
+                          </Autocomplete>
+                        ) : (
+                          <input type="text" className="form-control" placeholder="Loading..." disabled />
+                        )}
                         <Err field="address" />
                       </div>
 
+                      {/* Replace City/State/Country fields with City/Suburb/Country: */}
                       <div className="col-md-4">
                         <label>City</label>
-                        <input className="form-control" value={formData.city} onChange={(e) => handleChange("city", e.target.value)} />
+                        <input className="form-control" value={formData.city}
+                          onChange={(e) => handleChange("city", e.target.value)} />
                       </div>
                       <div className="col-md-4">
-                        <label>State</label>
-                        <input className="form-control" value={formData.state} onChange={(e) => handleChange("state", e.target.value)} />
+                        <label>Suburb</label>  {/* ← was State */}
+                        <input className="form-control" value={formData.suburb}
+                          onChange={(e) => handleChange("suburb", e.target.value)} />
                       </div>
                       <div className="col-md-4">
                         <label>Country</label>
-                        <input className="form-control" value={formData.country} onChange={(e) => handleChange("country", e.target.value)} />
+                        <input className="form-control" value={formData.country}
+                          onChange={(e) => handleChange("country", e.target.value)} />
                       </div>
 
                       {/* {formData.latitude && (
@@ -814,29 +821,41 @@ const handlePhoneChange = (value) => {
                     <div className="row g-3">
                       <div className="col-md-6">
                         <label>Min Salary (per hour) <span className="text-danger">*</span></label>
-                        <input
-                          className={`form-control ${errors.minSalary ? "is-invalid" : ""}`}
-                          value={formData.minSalary}
-                        //   onChange={(e) => handleChange("minSalary", e.target.value)}
-                        onChange={(e) => handleOnlyNumbers("minSalary", e.target.value)}
-                        />
+                        <div className="input-group">
+                          <span className="input-group-text">AU$</span>
+                          <input
+                            className={`form-control ${errors.minSalary ? "is-invalid" : ""}`}
+                            value={formData.minSalary}
+                            onChange={(e) => handleOnlyNumbers("minSalary", e.target.value)}
+                          />
+                        </div>
                         <Err field="minSalary" />
                       </div>
+
                       <div className="col-md-6">
                         <label>Max Salary (per hour) <span className="text-danger">*</span></label>
-                        <input
-                          className={`form-control ${errors.maxSalary ? "is-invalid" : ""}`}
-                          value={formData.maxSalary}
-                        //   onChange={(e) => handleChange("maxSalary", e.target.value)}
-                          onChange={(e) => handleOnlyNumbers("maxSalary", e.target.value)}
-                        />
+                        <div className="input-group">
+                          <span className="input-group-text">AU$</span>
+                          <input
+                            className={`form-control ${errors.maxSalary ? "is-invalid" : ""}`}
+                            value={formData.maxSalary}
+                            onChange={(e) => handleOnlyNumbers("maxSalary", e.target.value)}
+                          />
+                        </div>
                         <Err field="maxSalary" />
                       </div>
 
                       <div className="col-12">
-                        <input type="checkbox" checked={formData.negotiable} onChange={(e) => handleChange("negotiable", e.target.checked)} />
-                        {" "}Salary is negotiable
-                      </div>
+                      <label className="d-flex align-items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.negotiable}
+                          onChange={(e) => handleChange("negotiable", e.target.checked)}
+                          className="m-0"
+                        />
+                        Salary is negotiable
+                      </label>
+                    </div>
 
                       <div className="col-12">
                         <label>Video URL (optional)</label>
@@ -908,7 +927,6 @@ const handlePhoneChange = (value) => {
                   </div>
                 )}
               </form>
-            </LoadScript>
           </div>
         </div>
         <Footer />
@@ -1005,25 +1023,26 @@ const handlePhoneChange = (value) => {
 
                       <div className="col-12">
                         <label>Institution Name <span className="text-danger">*</span></label>
-<input
-  className={`form-control ${authErrors.institution_name ? "is-invalid" : ""}`}
-  placeholder="Institution/Company name"
-  value={employerData.institution_name}
-  onChange={(e) => handleEmployerChange("institution_name", e.target.value)}
-/>
-{authErrors.institution_name && <div className="text-danger small mt-1">{authErrors.institution_name}</div>}
+                        <input
+                          className={`form-control ${authErrors.institution_name ? "is-invalid" : ""}`}
+                          placeholder="Institution/Company name"
+                          value={employerData.institution_name}
+                          onChange={(e) => handleEmployerChange("institution_name", e.target.value)}
+                        />
+                        {authErrors.institution_name && <div className="text-danger small mt-1">{authErrors.institution_name}</div>}
                       </div>
 
                       <div className="col-12">
                         <label>Tax / ABN Number <span className="text-danger">*</span></label>
-<input
-  className={`form-control ${authErrors.tax_avin_number ? "is-invalid" : ""}`}
-  placeholder="Tax or ABN number"
-  value={employerData.tax_avin_number}
-  onChange={(e) => handleEmployerChange("tax_avin_number", e.target.value)}
-/>
-{authErrors.tax_avin_number && <div className="text-danger small mt-1">{authErrors.tax_avin_number}</div>}
-                      </div>
+                        <input
+                          className={`form-control ${authErrors.tax_avin_number ? "is-invalid" : ""}`}
+                          placeholder="Tax or ABN number"
+                          value={employerData.tax_avin_number}
+                          maxLength={15}
+                          onChange={(e) => handleEmployerChange("tax_avin_number", e.target.value)}
+                        />
+                        {authErrors.tax_avin_number && <div className="text-danger small mt-1">{authErrors.tax_avin_number}</div>}
+                     </div>
 
                       <div className="col-md-6">
                         <label>Email <span className="text-danger">*</span></label>

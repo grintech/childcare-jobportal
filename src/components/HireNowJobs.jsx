@@ -22,6 +22,7 @@ import { Link } from "react-router-dom";
 
 const HireNowJobs = () => {
   const { user, isAuthenticated } = useAuth();
+  const currency = import.meta.env.VITE_CURRENCY;
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -358,7 +359,7 @@ const handleSaveToggle = async (job) => {
                           </Link>
 
                           <p className="salary">
-                            ${job.salary_min} - ${job.salary_max} (
+                            {currency}{job.salary_min} - {currency}{job.salary_max} (
                             {job.salary_type})
                           </p>
 
