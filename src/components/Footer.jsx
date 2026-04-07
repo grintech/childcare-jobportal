@@ -1,7 +1,46 @@
-import { Facebook, Instagram, Twitter, Linkedin } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../services/api";
 
 const Footer = () => {
+   
+  const [email, setEmail] = useState();
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+
+ const handleSubscribe = async () => {
+  if (!email || !email.trim()) {
+    setErrorMsg("Email is required");
+    setTimeout(() => setErrorMsg(""), 2000);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const res = await api.post("/newsletter", { email });
+
+    if (res.status) {
+      setSuccessMsg(res.message || "Successfully subscribed.");
+      setEmail("");
+    } else {
+      setErrorMsg(res.message || "Something went wrong.");
+    }
+
+    setTimeout(() => {
+      setSuccessMsg("");
+      setErrorMsg("");
+    }, 3000);
+
+  } catch (err) {
+    setErrorMsg(err.message || "Something went wrong.");
+    setTimeout(() => setErrorMsg(""), 3000);
+  } finally {
+    setLoading(false);
+  }
+};
+
   return (
     <footer className="footer_section text-white">
       <div className="container">
@@ -22,16 +61,16 @@ const Footer = () => {
 
             <div className="footer_social d-flex gap-3 mt-3">
             <a href="#" className="social_icon">
-                <Facebook size={18} />
+               <i className="fa-brands fa-facebook"></i>
             </a>
             <a href="#" className="social_icon">
-                <Instagram size={18} />
+                <i className="fa-brands fa-instagram"></i>
             </a>
             <a href="#" className="social_icon">
-                <Twitter size={18} />
+                <i className="fa-brands fa-twitter"></i>
             </a>
             <a href="#" className="social_icon">
-                <Linkedin size={18} />
+               <i className="fa-brands fa-linkedin"></i>
             </a>
             </div>
 
@@ -54,7 +93,25 @@ const Footer = () => {
             <Link> Email: support@educare.com</Link>
             <p></p>
 
-           <div className="newsletter-box"><input placeholder="Email address" type="email"  /><button>Subscribe</button></div>
+           <div className="newsletter-box">
+            <input 
+            placeholder="Email address"
+            type="email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)} 
+             />
+
+            <button onClick={handleSubscribe} disabled={loading}  > {loading ? "Subscribing..." : "Subscribe"}</button>
+            </div>
+
+             {/* Messages */}
+              {successMsg && (
+                <p className="text-success mt-2 mb-0 fw-semibold small">{successMsg}</p>
+              )}
+
+              {errorMsg && (
+                <p className="text-danger mt-2 mb-0 fw-semibold small">{errorMsg}</p>
+              )}
 
           </div>
 

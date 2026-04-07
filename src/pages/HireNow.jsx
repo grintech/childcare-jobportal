@@ -57,40 +57,6 @@ const rightVariant = {
 
                         </motion.div>
 
-                      {/*  <motion.div className="row align-items-center justify-content-center"
-                          initial={{ y: 40, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                           transition={{ delay: 0.6, duration: 0.6 }}
-                         >
-                          <div className="col-md-9 col-lg-10">
-                            <div className="row gy-3 gy-md-0 gx-3 mt-2 mt-md-4">
-                              <div className="col-md-7">
-                                <input
-                                type="text"
-                                placeholder="Search by name or skills.."
-                                className="form-control"
-                              />
-                              </div>
-
-                              <div className="col-md-5">
-                                   <input
-                                      type="text"
-                                      placeholder="Location (e.g. Sydney)"
-                                      className="form-control"
-                                    />
-                              </div>
-
-
-                             
-                            </div>
-                          </div>
-
-                          <div className="col-md-3 col-lg-2 text-center px-md-0">
-                            <div className="mt-3 mt-md-4">
-                              <button className="btn-search w-100">Search Now</button>
-                            </div>
-                          </div>
-                        </motion.div> */}
 
                     </motion.div>
                     <motion.div className="col-lg-4 offset-lg-1 d-none d-lg-block"

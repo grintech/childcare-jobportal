@@ -33,6 +33,15 @@ const HireNowJobs = () => {
   const desktopSliderRef = useRef(null);
   // const mobileSliderRef = useRef(null);
 
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observerRef = useRef(null);
+
+  const isFetchingRef = useRef(false);
+
+
+
   const [filters, setFilters] = useState({
     role: "",
     location: "",
@@ -100,59 +109,95 @@ const renderStars = (rating) => {
 
   // Fetch Jobs list
 
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
+const fetchJobs = async (pageNum = 1, isNewSearch = false) => {
 
-      const params = {
-        title: filters.role,
-        location: filters.location,
-        suburb: filters.suburb,
-        institution_name: filters.company, 
-        // salary_max: filters.salary_max,
-      };
+  if (isFetchingRef.current) return; //  prevent duplicate calls
+  isFetchingRef.current = true;
 
-      const res = await api.get("/job-list", { params });
+  try {
+    isNewSearch ? setLoading(true) : setLoadingMore(true);
 
-      if (res.status) {
-        setJobs(res.data);
-      }
-    } catch (err) {
-      console.log(err);
-      // toast.error("Failed to fetch jobs");
-    } finally {
-      setLoading(false);
+    const params = {
+      title: filters.role,
+      location: filters.location,
+      suburb: filters.suburb,
+      institution_name: filters.company,
+      page: pageNum,
+      // per_page: 1, // for testing only
+    };
+
+    const res = await api.get("/job-list", { params });
+
+    if (res.status) {
+      const newJobs = res.data;
+      const { last_page, current_page } = res.pagination;
+
+      setJobs((prev) => isNewSearch ? newJobs : [...prev, ...newJobs]);
+      setHasMore(current_page < last_page);
+      setPage(current_page);
     }
-  };
+  } catch (err) {
+    console.log(err);
+  } finally {
+    setLoading(false);
+    setLoadingMore(false);
+    isFetchingRef.current = false;
+  }
+};
 
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchJobs();
-    }, 500); // debounce
+useEffect(() => {
+  const delay = setTimeout(() => {
+    isFetchingRef.current = false;
+    setLoading(true);   //  show skeleton immediately
+    setPage(1);
+    setJobs([]);        //  clear after loading is true, no flash
+    setHasMore(true);
+    fetchJobs(1, true);
+  }, 500);
 
-    return () => clearTimeout(delay);
-  }, [filters]);
+  return () => clearTimeout(delay);
+}, [filters]);
 
-  //  Filtering Logic
-  const filteredJobs = jobs;
+useEffect(() => {
+  if (!hasMore || loadingMore) return;
 
-  const handleReset = () => {
-    setFilters({
-      role: "",
-      location: "",
-      suburb: "",
-      company: "",
-      // salary_max: 50,
-    });
-  };
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) {
+        fetchJobs(page + 1, false);
+      }
+    },
+    { threshold: 1.0 }
+  );
 
-   useEffect(() => {
+  if (observerRef.current) observer.observe(observerRef.current);
+  return () => observer.disconnect();
+
+}, [hasMore, loadingMore, page]);
+
+
+
+//  Filtering Logic
+const filteredJobs = jobs;
+
+const handleReset = () => {
+  isFetchingRef.current = false; //  release any stuck fetch lock
+  setFilters({ role: "", location: "", suburb: "", company: "" });
+  setPage(1);
+  setHasMore(true);
+};
+
+useEffect(() => {
   if (jobs.length) {
-    const initialSaved = {};
-    jobs.forEach((job) => {
-      initialSaved[job.id] = job.is_saved; //  from API
+    setSavedItems((prev) => {
+      const updated = { ...prev };
+      jobs.forEach((job) => {
+        if (!(job.id in updated)) {
+          updated[job.id] = job.is_saved;
+        }
+      });
+      return updated;
     });
-    setSavedItems(initialSaved);
   }
 }, [jobs]);
 
@@ -171,16 +216,15 @@ const handleAppliedUpdate = (jobId) => {
 
 
 const handleSaveToggle = async (job) => {
-  //  Not logged in
   if (!isAuthenticated) {
     toast.error("Please login to save a job!");
     return;
   }
-  // Wrong role
-    if (user?.role !== "teacher") {
-      toast.error("Only jobseeker can save the job!");
-      return;
-    }
+  
+  if (user?.role !== "teacher") {
+    toast.error("Only jobseeker can save the job!");
+    return;
+  }
 
   try {
     setSavingId(job.id);
@@ -302,12 +346,12 @@ const handleSaveToggle = async (job) => {
           {/* ================= RIGHT JOB LIST ================= */}
           <motion.div className="col-12"
             initial={{ y: 80, opacity: 0 }} // start from bottom
-          animate={{ y: 0, opacity: 1 }} // move to normal
-          transition={{
-            delay: 1.15, // more delay (increase if needed)
-            duration: 1, // smoother animation
-            ease: "easeOut", // nice smooth ending
-          }}     
+            animate={{ y: 0, opacity: 1 }} // move to normal
+            transition={{
+              delay: 1.15, // more delay (increase if needed)
+              duration: 1, // smoother animation
+              ease: "easeOut", // nice smooth ending
+            }}     
           >
             
 
@@ -415,7 +459,7 @@ const handleSaveToggle = async (job) => {
                     </div>
                   </div>
                 ))
-              ) : (
+              ) : !loading && (
               <div className="col-12">
                  <div className="d-flex flex-column align-items-center justify-content-center bg-white py-4 px-3 ">
                 <Briefcase size={25} className="mb-2" /> 
@@ -423,6 +467,22 @@ const handleSaveToggle = async (job) => {
                </div>
               </div>
               )}
+
+              {/* Infinite scroll sentinel */}
+              {hasMore && (
+                <div ref={observerRef} className="col-12 text-center py-3">
+                  {loadingMore && <Loader size={28} className="spin text_theme" />}
+                </div>
+              )}
+
+              {!hasMore && jobs.length > 0 && (
+                <div className="col-12 text-center py-3 text-muted  fw-semibold">
+                  You've reached the end!
+                </div>
+              )}
+
+
+
             </div>
           </motion.div>
 

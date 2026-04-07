@@ -12,6 +12,7 @@
   --secondary: #f36969;
   --light: #FFF1E9;
   --dark:#ef3a3a;
+  --green:#108a00;
 }
 .text_theme{color: var(--secondary);}
 .text_blue{color: var(--primary);}
@@ -1700,7 +1701,7 @@ html {
 }
 
 .inside_description{color: rgb(75, 74, 74);}
-/* Description clamp (4 lines) */
+
 .inside_description.clamp {
   display: -webkit-box;
   -webkit-line-clamp: 4;

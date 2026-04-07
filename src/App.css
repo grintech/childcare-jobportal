@@ -430,17 +430,19 @@
   border-radius: 6px;
   background: #f1f5f9;
   color: #333;
+
   font-weight: 500;
   border: 1px solid #e2e8f0;
   transition: 0.3s;
 }
+.badge_item svg{color: var(--green);}
 
 .badge_item:hover {
   background:#e8f1fa ;
   border-color: #e8f1fa;
 }
 
-.verified_badge{color: #108a00; font-weight: 600; font-size: 15px;}
+.verified_badge{color: var(--green); font-weight: 600; font-size: 15px;}
 .contact_info .small{font-size: 15px !important;}
 
 /*--- Redirecting CSS ---------*/
@@ -513,6 +515,16 @@
   object-fit: contain;
   background-color: var(--light);
   border-radius: 12px;
+}
+
+.job_swiper .swiper-pagination-bullet {
+  background: #9b9a9a !important;
+  opacity: 0.6 !important;
+}
+
+.job_swiper .swiper-pagination-bullet-active {
+  background: var(--secondary) !important;
+  opacity: 1 !important;
 }
 
 /* Card */

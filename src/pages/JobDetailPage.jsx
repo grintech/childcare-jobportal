@@ -25,6 +25,13 @@ import { useAuth } from "../context/AuthContext";
 import ApplyModal from "../components/ApplyModal";
 import JobCardSkeleton from "../components/skeletons/JobCardSkeleton";
 
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination, Autoplay } from "swiper/modules";
+
+import "swiper/css";
+import "swiper/css/pagination";
+
+
 const JobDetailPage = () => {
   const { slug } = useParams();
   const { user, isAuthenticated } = useAuth();
@@ -130,7 +137,7 @@ useEffect(() => {
     fetchJob();
     fetchSimilarJobs();
   }
-}, [slug]);
+}, [slug, isAuthenticated]);
 
  // ✅ SAVE / UNSAVE SIMILAR
 const handleSaveToggle = async (item) => {
@@ -173,48 +180,61 @@ const stripHtml = (html) => {
 const maskPhone = (phone, type = "full") => {
   if (!phone) return "";
 
+  const hasPlus = phone.trim().startsWith("+");
   const clean = phone.replace(/\D/g, "");
 
   if (clean.length < 6) return phone;
 
-  let countryCode = "+XX";
+  let countryCode = "";
   let number = clean;
 
-  // Extract country code if present
-  if (clean.length > 10) {
-    countryCode = `+${clean.slice(0, clean.length - 10)}`;
-    number = clean.slice(-10);
+  // Extract country code only if '+' prefix was present
+  if (hasPlus && clean.length > 10) {
+    const ccLength = clean.length - 10; // e.g. 12 digits total → 2-digit CC
+    countryCode = `+${clean.slice(0, ccLength)}`;
+    number = clean.slice(ccLength);
   }
 
   const first3 = number.slice(0, 3);
   const last3 = number.slice(-3);
+  const prefix = countryCode ? `${countryCode} ` : "";
 
   switch (type) {
     case "hideAll":
-      return `${countryCode} XXX XXX ${last3}`;
+      return `${prefix}*** *** ${last3}`;
 
     case "showFirst":
-      return `${countryCode} ${first3} XXX ${last3}`;
+      return `${prefix}${first3} *** ${last3}`;
 
     case "hideMiddle":
-      return `${countryCode} XXX XXX ${last3}`;
+      return `${prefix}*** *** ${last3}`;
 
     case "default":
     default:
-      return ` ${first3} XXX XXX ${last3}`;
+      return `${prefix}${first3} *** *** ${last3}`;
   }
 };
 
-  const maskEmail = (email) => {
-    if (!email) return "";
+const maskEmail = (email) => {
+  if (!email) return "";
 
-    const [name, domain] = email.split("@");
+  const [name, domain] = email.split("@");
 
-    if (!name || !domain) return email;
+  if (!name || !domain) return email;
 
-    const visible = name.slice(0, 3); 
-    return `${visible}xxxx@${domain}`;
-  };
+  let visible;
+
+  if (name.length <= 2) {
+    visible = "*".repeat(name.length); // fully hide short names
+  } else if (name.length <= 5) {
+    visible = name.slice(0, 1) + "*".repeat(name.length - 1); // show only 1 char
+  } else {
+    visible = name.slice(0, 3) + "*".repeat(name.length - 3); // show 3 chars
+  }
+
+  return `${visible}@${domain}`;
+};
+
 
   return (
     <>
@@ -236,10 +256,39 @@ const maskPhone = (phone, type = "full") => {
                         <div className="col-lg-8 mb-5 mb-lg-0">
 
                           <div className="job_detail_card shadow-sm mb-3">
+                          {Array.isArray(job.image) && job.image.length > 0 && (
+                          <div className="job_banner mb-3">
 
-                            <div className="job_banner mb-3">
-                              <img src={`${job.image || "/images/job_detail.png"} `} alt="job" />
-                            </div>
+                            {/* ✅ SINGLE IMAGE */}
+                            {job.image.length === 1 && (
+                              <img src={job.image[0]} alt="job-banner" />
+                            )}
+
+                            {/* ✅ MULTIPLE IMAGES → SWIPER */}
+                            {job.image.length > 1 && (
+                             <Swiper
+  modules={[Pagination, Autoplay]}
+  pagination={{ clickable: true }}
+  autoplay={{
+    delay: 2500,          // 2.5 sec
+    disableOnInteraction: false, // keep autoplay after swipe
+    pauseOnMouseEnter: true,     // pause on hover (desktop)
+  }}
+  loop={true}             // infinite loop
+  spaceBetween={10}
+  slidesPerView={1}
+  className="job_swiper"
+>
+  {job.image.map((img, i) => (
+    <SwiperSlide key={i}>
+      <img src={img} alt={`job-${i}`} />
+    </SwiperSlide>
+  ))}
+</Swiper>
+                            )}
+
+                          </div>
+                        )}
 
                             {/* HEADER */}
                             <div className="d-flex align-items-center gap-3 mb-3">
@@ -536,8 +585,18 @@ const maskPhone = (phone, type = "full") => {
 
       <ApplyModal
           show={showApplyModal}
-          onClose={() => setShowApplyModal(false)}
+          onClose={() => setShowApplyModal(false)}  
           jobData={selectedJob}
+          onApplied={(jobId) => {
+          // Update main job
+          if (job?.id === jobId) {
+            setJob((prev) => ({ ...prev, is_applied: true }));
+          }
+          // Update similar jobs
+          setSimilarJobs((prev) =>
+            prev.map((j) => j.id === jobId ? { ...j, is_applied: true } : j)
+          );
+        }}
         />
     </>
   );
