@@ -17,6 +17,7 @@ import TeacherCardSkeleton from "./skeletons/TeacherCardSkeleton";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import ScheduleInterview from "./Scheduleinterview";
+import { useNavigate } from "react-router-dom";
 
 const maskPhone = (phone, type = "full") => {
   if (!phone) return "";
@@ -79,6 +80,7 @@ const maskEmail = (email) => {
 
 const TeacherProfiles = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const canViewContact =
   isAuthenticated &&
@@ -431,9 +433,7 @@ useEffect(() => {
                                       toast.error("Please login to view profile!");
                                       return;
                                     }
-
-                                    setSelectedTeacher(teacher);
-                                    setShowProfileModal(true);
+                                    navigate(`/profile/${teacher.id}`);
                                   }}
                                 >
                                   View Profile
@@ -447,7 +447,7 @@ useEffect(() => {
                                     setShowScheduleModal(true);
                                   }}
                                 >
-                                  Hire Now
+                                  Schedule Interview
                                 </button>
                               )}
                           </div>
