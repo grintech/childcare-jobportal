@@ -26,6 +26,7 @@
 .text_theme{color: var(--secondary);}
 .text_blue{color: var(--primary);}
 
+
 a{cursor: pointer; text-decoration: none !important;}
 
 body{

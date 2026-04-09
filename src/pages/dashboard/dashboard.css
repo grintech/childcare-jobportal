@@ -43,7 +43,9 @@
 .modal.show{z-index: 100000 !important;}
 .modal .btn-close:focus{box-shadow: none !important; border-color: var(--secondary) !important;}
 
-
+.custom_toaster {
+  z-index: 110000 !important;
+}
 
 .statistics_funfact {
     background-color: #fff;

@@ -12,6 +12,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -90,13 +91,16 @@ const ScheduleInterview = ({ teacher, onClose }) => {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-
+  const [jobTitle, setJobTitle] = useState("");
+  const [meetingType, setMeetingType] = useState("online"); // default
+  const [meetingLink, setMeetingLink] = useState("");
+  const [location, setLocation] = useState("");
+  const [maxBudget, setMaxBudget] = useState("");
+  const [description, setDescription] = useState("");
+  // console.log(teacher);
   const { user, isAuthenticated } = useAuth();
   
-    const canViewContact =
-    isAuthenticated &&
-    user?.role === "principal" &&
-    user?.has_subscription;
+  const canViewContact = isAuthenticated && user?.role === "principal" && user?.has_subscription;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -107,24 +111,74 @@ const ScheduleInterview = ({ teacher, onClose }) => {
 
   const timeSlots = selectedDate ? generateTimeSlots(selectedDate) : [];
 
-  const handleSubmit = () => {
-    if (!selectedDate) {
-      toast.error("Please select a date.");
-      return;
-    }
-    if (!selectedTime) {
-      toast.error("Please select a time slot.");
-      return;
+ const handleSubmit = async () => {
+  if (!jobTitle) { toast.error("Please enter job title"); return; }
+  if (meetingType === "online" && !meetingLink) { toast.error("Please enter meeting link"); return; }
+  if (meetingType === "offline" && !location) { toast.error("Please enter location"); return; }
+  if (!selectedDate) { toast.error("Please select a date."); return; }
+  if (!selectedTime) { toast.error("Please select a time slot."); return; }
+
+  setSubmitting(true);
+
+  try {
+    // Convert "10:00 AM" → "10:00", "2:00 PM" → "14:00"
+    const parseTime = (timeStr) => {
+      const [time, period] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    };
+
+    const startTime = parseTime(selectedTime);
+    // end_time = start + 1 hour
+    const [sh, sm] = startTime.split(":").map(Number);
+    const endHour = String(sh + 1).padStart(2, "0");
+    const endTime = `${endHour}:${String(sm).padStart(2, "0")}`;
+
+    // Format date as YYYY-MM-DD
+    const interviewDate = selectedDate.toLocaleDateString("en-CA"); // "2026-04-10"
+
+    const formData = new FormData();
+    formData.append("teacher_id", teacher.id);
+    formData.append("job_title", jobTitle);
+    formData.append("job_id", teacher?.jobId || ""); 
+    formData.append("max_budget", maxBudget);
+    formData.append("description", description);
+    formData.append("interview_date", interviewDate);
+    formData.append("start_time", startTime);
+    formData.append("end_time", endTime);
+
+    // 2. Fix formData — send correct key per type
+    formData.append("type", meetingType);
+
+    if (meetingType === "online") {
+      formData.append("meeting_link", meetingLink);
+      // do NOT append location at all
+    } else {
+      formData.append("location", location);
+      // do NOT append meeting_link at all
     }
 
-    setSubmitting(true);
+    // invites array
+    formData.append("invites[0][email]", teacher.email);
+    formData.append("invites[0][user_id]", teacher.id);
+    formData.append("invites[0][role]", "teacher");
 
-    setTimeout(() => {
-      setSubmitting(false);
-      toast.success("Interview scheduled successfully!");
-      onClose();
-    }, 1200);
-  };
+    const response = await api.post("/invite", formData, {
+      headers: {
+        "Content-Type": undefined, // removes the default for this request only
+      },
+    });
+    toast.success(response?.message || "Interview scheduled successfully!");
+    console.log(response?.message);
+    onClose();
+  } catch (err) {
+    toast.error(err?.message || "Failed to schedule interview.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <>
@@ -181,39 +235,138 @@ const ScheduleInterview = ({ teacher, onClose }) => {
 
               <div className="row g-4">
 
-                <div className="col-12 col-md-6">
-                  <h6 className="schedule_section_label mb-3">
-                    <CalIcon size={15} className="me-1" />
-                    Select Date <span className="text-danger">*</span>
-                  </h6>
+              {/* LEFT SIDE → FORM */}
+              <div className="col-12 col-lg-6">
+                <div className="schedule_card">
+
+                  <h6 className="side_title">Interview Details</h6>
+
+                  {/* JOB TITLE */}
+                  <div className="mb-3">
+                    <label className="form-label">Job Title</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. Math Teacher"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                    />
+                  </div>
+
+                  {/* MEETING TYPE */}
+                  <div className="mb-3">
+                    <label className="form-label">Meeting Type</label>
+
+                    <div className="meeting_toggle">
+                      <button
+                        type="button"
+                        className={meetingType === "online" ? "active" : ""}
+                        onClick={() => { setMeetingType("online"); setLocation(""); }}
+                      >
+                        Online
+                      </button>
+                      <button
+                        type="button"
+                        className={meetingType === "offline" ? "active" : ""}
+                        onClick={() => { setMeetingType("offline"); setMeetingLink(""); }}
+                      >
+                        Offline
+                      </button>
+                    </div>
+                 </div>
+
+                  {/* CONDITIONAL */}
+                  {meetingType === "online" ? (
+                    <div className="mb-3">
+                      <label className="form-label">Meeting Link</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Paste meeting link"
+                        value={meetingLink}
+                        onChange={(e) => setMeetingLink(e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-3">
+                      <label className="form-label">Location</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Enter address"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {/* 💰 MAX BUDGET (INPUT GROUP) */}
+                  <div className="mb-3">
+                    <label className="form-label">Max Budget</label>
+                    <div className="input-group custom_budget">
+                      <span className="input-group-text">AUD</span>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="500"
+                        value={maxBudget}
+                        maxLength={4}
+                        onChange={(e) => {
+                          const val = e.target.value.slice(0, 4); // limit 4 digits
+                          setMaxBudget(val);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* DESCRIPTION */}
+                  <div>
+                    <label className="form-label">Description</label>
+                    <textarea
+                      className="form-control schedule_note"
+                      rows={3}
+                      placeholder="Write your message..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* RIGHT SIDE → DATE & TIME */}
+              <div className="col-12 col-lg-6">
+                <div className="schedule_card">
+
+                  <h6 className="side_title">Select Schedule</h6>
 
                   <Calendar
-                    value={selectedDate}
-                    onChange={(date) => {
-                      setSelectedDate(date);
-                      setSelectedTime(null);
-                    }}
-                    showNeighboringMonth={false}
-                    prev2Label={null}
-                    next2Label={null}
-                    calendarType="gregory"
-                    tileDisabled={({ date, view }) => {
-                      if (view !== "month") return false;
-                      
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      
-                      const localDate = new Date(
-                        date.getFullYear(),
-                        date.getMonth(),
-                        date.getDate()
-                      );
-                      
-                      const day = localDate.getDay();
-                      
-                      return localDate < today || day === 0;
-                    }}
-                  />
+                      value={selectedDate}
+                      onChange={(date) => {
+                        setSelectedDate(date);
+                        setSelectedTime(null);
+                      }}
+                      showNeighboringMonth={false}
+                      prev2Label={null}
+                      next2Label={null}
+                      calendarType="gregory"
+                      tileDisabled={({ date, view }) => {
+                        if (view !== "month") return false;
+                        
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        const localDate = new Date(
+                          date.getFullYear(),
+                          date.getMonth(),
+                          date.getDate()
+                        );
+                        
+                        const day = localDate.getDay();
+                        
+                        return localDate < today || day === 0;
+                      }}
+                    />
 
                   {selectedDate && (
                     <div className="schedule_selected_date mt-2">
@@ -221,29 +374,22 @@ const ScheduleInterview = ({ teacher, onClose }) => {
                       {formatDateDisplay(selectedDate)}
                     </div>
                   )}
-                </div>
 
-                <div className="col-12 col-md-6 d-flex flex-column">
-
-                  <h6 className="schedule_section_label mb-3">
+                  <h6 className="schedule_section_label mt-3">
                     <Clock size={15} className="me-1" />
-                    Select Time <span className="text-danger">*</span>
+                    Select Time
                   </h6>
 
                   {!selectedDate ? (
-                    <div className="schedule_time_placeholder mb-3">
-                      <Clock size={24} className="mb-2 opacity-25" />
-                      <span>Pick a date first</span>
-                    </div>
-                  ) : timeSlots.length === 0 ? (
-                    <div className="schedule_time_placeholder mb-3">
-                      <span>No slots available for today</span>
+                    <div className="schedule_time_placeholder">
+                      Pick a date first
                     </div>
                   ) : (
-                    <div className="time-grid mb-4">
+                    <div className="time-grid mt-2">
                       {timeSlots.map((time) => (
                         <button
                           key={time}
+                          type="button"
                           className={`time-btn ${selectedTime === time ? "active" : ""}`}
                           onClick={() => setSelectedTime(time)}
                         >
@@ -253,22 +399,10 @@ const ScheduleInterview = ({ teacher, onClose }) => {
                     </div>
                   )}
 
-                  <div className="mt-auto">
-                    <h6 className="schedule_section_label mb-2">
-                      Note{" "}
-                      <span className="text-muted small fw-normal ms-1">(optional)</span>
-                    </h6>
-                    <textarea
-                      className="form-control schedule_note"
-                      rows={3}
-                      placeholder="Add an additional note.."
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                  </div>
-
                 </div>
               </div>
+
+            </div>
 
               {selectedDate && selectedTime && (
                 <div className="schedule_summary mt-4">
@@ -477,8 +611,71 @@ const ScheduleInterview = ({ teacher, onClose }) => {
         }
           .react-calendar__tile:disabled{background:unset !important}
           .react-calendar__navigation button:enabled:hover, .react-calendar__navigation button:enabled:focus {
-    background-color: unset !important;;
-}
+              background-color: unset !important;;
+          }
+       .react-calendar__tile--now, .react-calendar__navigation{background: var(--light) !important;}
+    .schedule_card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      border: 1px solid #e9ecef;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+
+    .schedule_modal_body .form-label {
+      margin-bottom: .5rem;
+      font-size: 14px;
+      font-weight: 600;
+  }
+
+    .side_title {
+      font-weight: 600;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+      color: #212529;
+      text-transform:uppercase;
+    }
+
+    /* Meeting toggle buttons */
+    .meeting_toggle {
+      display: flex;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .meeting_toggle button {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      background: #f8f9fa;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .meeting_toggle button.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .custom_budget .input-group-text {
+      background: #f1f3f5;
+      font-weight: 600;
+      font-size:14px;
+    }
+    .custom_budget input {border-top-left-radius : 0 !important; border-bottom-left-radius: 0 !important;}
+
+
+    .form-control {
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(13,110,253,.1);
+    }
+
       `}</style>
     </>
   );

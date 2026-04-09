@@ -28,6 +28,7 @@ const App = () => {
      <Toaster
         position="top-center"
         reverseOrder={false}
+        containerClassName="custom_toaster"
       />
       <Routes>
         <Route path="/" element={<Homepage />} />

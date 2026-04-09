@@ -87,6 +87,24 @@ const TeacherProfiles = () => {
   user?.role === "principal" &&
   user?.has_subscription;
 
+ const handleViewProfile = (teacher) => {
+    if (!isAuthenticated) {
+      toast.error("Please login to view profile!");
+      return;
+    }
+    navigate(`/profile/${teacher.id}`);
+  };
+
+  const handleScheduleInterview = (teacher) => {
+    if (!user?.has_subscription) {
+      toast.error("Please buy subscription to schedule interview");
+      return;
+    }
+
+    setScheduleTeacher(teacher);
+    setShowScheduleModal(true);
+  };
+
 
   const [filters, setFilters] = useState({
     name: "",
@@ -115,7 +133,7 @@ const TeacherProfiles = () => {
  
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-const [scheduleTeacher, setScheduleTeacher]     = useState(null);
+  const [scheduleTeacher, setScheduleTeacher]     = useState(null);
 
   // ================= DEBOUNCE =================
   useEffect(() => {
@@ -426,31 +444,22 @@ useEffect(() => {
                           </div>
 
                           <div className="d-flex gap-2 mt-3">
-                                <button
-                                  className="btn btn-blue btn-sm"
-                                  onClick={() => {
-                                    if (!isAuthenticated) {
-                                      toast.error("Please login to view profile!");
-                                      return;
-                                    }
-                                    navigate(`/profile/${teacher.id}`);
-                                  }}
-                                >
-                                  View Profile
-                                </button>
+                          <button
+                            className="btn btn-blue btn-sm"
+                            onClick={() => handleViewProfile(teacher)}
+                          >
+                            View Profile
+                          </button>
 
-                               {isAuthenticated && user?.role === "principal" && (
-                                <button
-                                  className="btn btn-sm btn-primary"
-                                  onClick={() => {
-                                    setScheduleTeacher(teacher);
-                                    setShowScheduleModal(true);
-                                  }}
-                                >
-                                  Schedule Interview
-                                </button>
-                              )}
-                          </div>
+                          {isAuthenticated && user?.role === "principal" && (
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => handleScheduleInterview(teacher)}
+                            >
+                              Schedule Interview
+                            </button>
+                          )}
+                        </div>
 
                         </div>
                       </div>
