@@ -71,7 +71,7 @@ const maskEmail = (email) => {
 };
 
 const TeacherDetail = () => {
-  const { id } = useParams();
+  const {slug } = useParams();
   const { user, isAuthenticated } = useAuth();
 
   const [teacher, setTeacher] = useState(null);
@@ -86,12 +86,12 @@ const TeacherDetail = () => {
   const canViewContact =
     isAuthenticated && user?.role === "principal" && user?.has_subscription;
 
-  useEffect(() => { fetchTeacher(); }, [id]);
+  useEffect(() => { fetchTeacher(); }, [slug]);
 
   const fetchTeacher = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/teacher-details/${id}`);
+      const res = await api.get(`/teacher-details/${slug}`);
       const d = res.data;
       setTeacher({
         id: d.id,

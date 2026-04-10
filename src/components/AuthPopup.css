@@ -1,0 +1,148 @@
+/* Backdrop */
+.auth-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 999;
+}
+
+/* Modal */
+.auth-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 100%;
+  max-width: 450px;
+  background: #fff;
+  border-radius: 20px;
+  text-align: center;
+  overflow: hidden;
+
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Top bar */
+.auth-top-bar {
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+/* Content */
+.auth-content {
+  padding: 36px 36px 16px;
+}
+
+.auth-logo span {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Text */
+.auth-content h2 {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 15px 0 8px;
+}
+
+.auth-content p {
+  color: #777;
+  font-size: 0.88rem;
+  margin-bottom: 28px;
+}
+
+/* Buttons */
+.auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 10px;
+  font-size: 0.97rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: 0.2s;
+}
+
+/* Primary button */
+.auth-btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary));
+  color: #fff;
+  border: none;
+}
+
+.auth-btn.primary:hover {
+  transform: translateY(-2px);
+}
+
+/* Outline button */
+.auth-btn.outline {
+  background: #fff;
+  color: var(--secondary);
+  border: 2px solid var(--secondary);
+}
+
+.auth-btn.outline:hover {
+  background: var(--secondary);
+  color: #fff;
+}
+
+/* Footer */
+.auth-footer {
+  padding: 14px 36px 20px;
+  background: #fff1e9;
+  border-top: 1px solid #f5e0d8;
+  font-size: 0.8rem;
+  color: #5f5e5e;
+}
+
+.auth-footer span {
+  color: var(--primary);
+  cursor: pointer;
+}
+
+/* Animation */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+
+
+/* Points list (for Hire popup) */
+.auth-points {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0 25px;
+  text-align: left;
+}
+
+.auth-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #444;
+  margin-bottom: 10px;
+}
+
+.auth-points svg {
+  color: var(--primary);
+}

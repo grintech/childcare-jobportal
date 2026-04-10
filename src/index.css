@@ -25,7 +25,7 @@
 }
 .text_theme{color: var(--secondary);}
 .text_blue{color: var(--primary);}
-
+.badge.bg-primary{background-color: var(--primary) !important;}
 
 a{cursor: pointer; text-decoration: none !important;}
 
@@ -42,7 +42,7 @@ html {
 }
 
 .min_height{min-height: 80vh;}
-.top_padding{padding: 100px 0 50px 0;}
+.top_padding{padding: 98px 0 50px 0;}
 .section_padding{padding: 80px 0;}
 .section_padding_top{padding: 80px 0 0 0;}
 .section_padding_bottom{padding: 0 0 80px 0;}
@@ -59,7 +59,7 @@ html {
   position: absolute !important;  
   top: 0 !important;
   width: 100% !important;
-  z-index: 999;
+  z-index: 9999;
   overflow: visible !important;
 }
 
@@ -180,21 +180,23 @@ html {
   position: absolute;
   top: 110%;
   right: 0;
-  min-width: 180px;
+  min-width: 190px !important;
   border-radius: 10px;
   padding: 10px 0;
+  border-radius: 8px !important;
 }
 
 .custom-user-dropdown .dropdown-item {
-  padding: 7px 15px;
+  padding: 8px 15px;
   cursor: pointer;
+  font-size: 17px;
 }
 
 .custom-user-dropdown .dropdown-item:hover {
   background: #f5f5f5;
   color: #000000;
 }
-.navbar .user-dropdown .btn-login {padding: 10px 10px !important; font-size: 14px !important;}
+.navbar .user-dropdown .btn-post {padding: 10px 10px !important; font-size: 14px !important;}
 
 
 .search_box {
@@ -1927,8 +1929,8 @@ html {
  
 .stars_row.big svg {
   cursor: pointer;
-  width: 29px;
-  height: 29px;
+  width: 40px;
+  height: 40px;
   transition: transform 0.1s;
 }
  
@@ -2263,6 +2265,9 @@ textarea:focus {
   text-align: center;
 }
 
+/*------ Eomployer Details ------*/
+
+.emp_tabs .btn:active{border-left: 0 !important; border-top: 0 !important; border-right: 0 !important;}
 
 
 /*---- MEDIA QUERIES ------*/

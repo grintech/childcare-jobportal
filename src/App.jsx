@@ -20,6 +20,7 @@ import SavedJobs from './pages/dashboard/SavedJobs'
 import AppliedJobs from './pages/dashboard/AppliedJobs'
 import JobDetailPage from './pages/JobDetailPage'
 import TeacherDetail from './pages/TeacherDetail'
+import EmployerDetail from './pages/EmployerDetail'
 
 const App = () => {
   return (
@@ -45,7 +46,8 @@ const App = () => {
         <Route path="/get-trained" element={<UpSkill />} />
         <Route path="/job-post" element={<PostJob />} />
         <Route path="/job/:slug" element={<JobDetailPage />} />
-        <Route path="/profile/:id" element={<TeacherDetail />} />
+        <Route path="/profile/:slug" element={<TeacherDetail />} />
+        <Route path="/company" element={<EmployerDetail />} />
 
         {/*  Protected Pages */}
         <Route path="/my-account" element={ <ProtectedRoute ><MyAccount /></ProtectedRoute>} />

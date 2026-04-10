@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  CloudUpload,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
@@ -29,6 +30,7 @@ const Signup = () => {
   designation: "",
   institution_name: "",
   tax_avin_number: "",
+  profile_image: null,
 });
 
 
@@ -79,6 +81,11 @@ useEffect(() => {
   setForm({ ...form, tax_avin_number: value });
 };
 
+const handleFileChange = (e) => {
+  const file = e.target.files[0] || null;
+  setForm({ ...form, profile_image: file });
+};
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -101,30 +108,37 @@ useEffect(() => {
     }
 
     if (role === "principal" && form.tax_avin_number.trim().length > 15) {
-      setErrorMsg("Tax AVIN number must be 15 characters or less.");
+      setErrorMsg("Tax/ ABN number must be 15 characters or less.");
+      return;
+    }
+
+    if (role === "principal" && !form.profile_image) {
+      setErrorMsg("Please upload your company logo");
       return;
     }
 
     setLoading(true);
 
     try {
-      const payload = {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-        role: role,
-      };
+      const formData = new FormData();
+      Object.entries({
+        name: form.name, email: form.email, phone: form.phone,
+        password: form.password, password_confirmation: form.password_confirmation,
+        role,
+        ...(role === "principal" && {
+          designation: form.designation,
+          institution_name: form.institution_name,
+          tax_avin_number: form.tax_avin_number,
+        }),
+      }).forEach(([k, v]) => formData.append(k, v));
 
-      //  Employer fields
-      if (role === "principal") {
-        payload.designation = form.designation;
-        payload.institution_name = form.institution_name;
-        payload.tax_avin_number = form.tax_avin_number;
+      if (role === "principal" && form.profile_image) {
+        formData.append("profile_image", form.profile_image);
       }
 
-      const res = await api.post("/register", payload);
+      const res = await api.post("/register", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       if (res.status) {
         setSuccessMsg(res.message || "Account created successfully!");
@@ -356,7 +370,7 @@ useEffect(() => {
 
                       <div className="mb-3">
                         <label>
-                          Tax AVIN Number <span className="text-danger">*</span>
+                          Tax ABN Number <span className="text-danger">*</span>
                         </label>
                         <input
                           name="tax_avin_number"
@@ -370,6 +384,48 @@ useEffect(() => {
                         <small className="text-muted pt-2">
                           Maximum 15 characters allowed
                         </small>
+                      </div>
+
+
+                      <div className="mb-3">
+                        <label>
+                          Upload Logo <span className="text-danger">*</span>
+                          
+                        </label>
+
+                        {!form.profile_image ? (
+                          <div
+                            className="  rounded-3 p-4 text-center text_theme"
+                            style={{ cursor: "pointer", border: "2px dashed #ccc" }}
+                            onClick={() => document.getElementById("logoInput").click()}
+                          >
+                            <input
+                              id="logoInput"
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={handleFileChange}
+                            />
+                            <CloudUpload size={30} />
+                          </div>
+                        ) : (
+                          <div className="d-flex align-items-center gap-2 mt-1 p-2 border rounded">
+                            <img
+                              src={URL.createObjectURL(form.profile_image)}
+                              alt="logo preview"
+                              style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }}
+                            />
+                            <span className="small flex-grow-1">{form.profile_image.name}</span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link text-danger p-0"
+                              onClick={() => setForm({ ...form, profile_image: null })}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                        <small className="text-muted mt-2">PNG, JPG, JPEG: Max 2 MB</small>
                       </div>
                     </>
                   )}

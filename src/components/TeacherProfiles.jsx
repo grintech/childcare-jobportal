@@ -92,7 +92,7 @@ const TeacherProfiles = () => {
       toast.error("Please login to view profile!");
       return;
     }
-    navigate(`/profile/${teacher.id}`);
+    navigate(`/profile/${teacher.slug}`);
   };
 
   const handleScheduleInterview = (teacher) => {
@@ -384,7 +384,7 @@ useEffect(() => {
                 [...Array(3)].map((_, i) => <TeacherCardSkeleton key={i} />)
               ) : teachers.length > 0 ? (
                 teachers.map((teacher) => (
-                  <div key={teacher.id} className="col-12 mb-4">
+                  <div key={teacher.slug} className="col-12 mb-4">
                    <div className="job_card p-3">
                       <div className="d-flex profile_wrap gap-4">
 

@@ -4,31 +4,38 @@ import TeacherProfiles from '../components/TeacherProfiles'
 import { motion } from "framer-motion";
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import HireAuthPopup from '../components/HireAuthPopup';
 
 const HireNow = () => {
 
-const leftVariant = {
-  hidden: { x: -80, opacity: 0 },
-  visible: {
-    x: 0,
-    opacity: 1,
-    transition: { duration: 0.7, ease: "easeOut" },
-  },
-};
+  const { user } = useAuth();
 
-const rightVariant = {
-  hidden: { x: 80, opacity: 0 },
-  visible: {
-    x: 0,
-    opacity: 1,
-    transition: { delay: 0.5, duration: 0.7, ease: "easeOut" },
-  },
-};
+  const leftVariant = {
+    hidden: { x: -80, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { duration: 0.7, ease: "easeOut" },
+    },
+  };
+
+  const rightVariant = {
+    hidden: { x: 80, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { delay: 0.5, duration: 0.7, ease: "easeOut" },
+    },
+  };
 
   return (
     <>
         <div className="hire_now blue_nav">
         <Navbar />
+
+        {!user && <HireAuthPopup />}
+
             <div className="job_hero">
                 <div className="container">
                     <div className="row align-items-center">

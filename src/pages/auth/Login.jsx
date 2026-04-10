@@ -58,7 +58,7 @@ const handleSubmit = async (e) => {
 
       setTimeout(() => {
         if (role === "teacher") {
-          navigate("/my-account", { replace: true });
+          navigate("/profile", { replace: true });
         } else if (role === "principal" || role === "super_admin") {
           const redirectUrl = `${import.meta.env.VITE_WEBSITE_URL}/session-login?token=${res.token}`;
           window.location.replace(redirectUrl); //  no flicker

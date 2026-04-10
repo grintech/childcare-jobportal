@@ -8,7 +8,7 @@ const PublicRoute = ({ children }) => {
   if (loading) return null;
 
   if (isAuthenticated && user?.role === "teacher") {
-    return <Navigate to="/my-account" />;
+    return <Navigate to="/profile" />;
   }
   
   return children;

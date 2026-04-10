@@ -118,10 +118,10 @@
 .profile_image{
     height: 120px;
     width: 120px;
-    border-radius: 50%;
+    border-radius: 12px;
 }
 .profile_image img{
-    border-radius: 50%;
+    border-radius: 12px;
     object-fit: cover;
     border: 1px solid #ccc;
     padding: 3px;
@@ -164,7 +164,7 @@
 .profile_page .card .theme_btn{font-size: 15px !important}
 
 
-.profile_page .card label{font-size: 15px; font-weight: 600; }
+.profile_page .card label{font-size: 15px; font-weight: 600; letter-spacing: .5px; }
 .profile_page .password_card input{padding-right: 35px;}
 .profile_page .password_card i{
     right: 20px;
@@ -172,12 +172,16 @@
     font-size: 14px;
 }
 
-.profile_page .form-control, .profile_page .form-select{border-radius: 6px !important;}
-.profile_page textarea.form-control{min-height: 80px;}
+.profile_page .form-control, .profile_page .form-select{border-radius: 6px !important;
+  border: 1px solid #ccc;
+  height: 48px;
+
+}
+.profile_page textarea.form-control{min-height: 150px;}
 
 .profile_page .upload_resume_input{
   background-color: #f8f9fa;
-  height: 42px;
+  height: 48px;
 }
 .profile_page .upload_resume_input:hover{
     background-color: #e9ecef !important;
@@ -216,6 +220,15 @@
 .profile_page .cursor-pointer {
   cursor: pointer; }
 
+
+.profile_right{position: sticky !important; top: 110px;}
+
+.resume_file_box {
+  background: #f8f9fb;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.resume_file_box a {word-break: break-all;}
 /*-------- Saved Jobs ------------*/
 
 .saved_jobs .job_card .job_tags{display: none !important;}

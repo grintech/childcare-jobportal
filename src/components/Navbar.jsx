@@ -1,4 +1,4 @@
-import { ChevronDown, LogIn, LogOut, Menu, Plus, PlusCircle, User } from "lucide-react";
+import { BookMarked, BookMarkedIcon, BriefcaseBusinessIcon, ChevronDown, Heart, LogIn, LogOut, Menu, Plus, PlusCircle, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -153,7 +153,7 @@ const scrollToSection = (id) => {
                 >
                   {/* User Button */}
                   <button
-                    className="btn-login d-flex align-items-center gap-1"
+                    className="btn-post d-flex align-items-center gap-1"
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                   >
                     {user?.name?.split(" ")[0]} <ChevronDown size={14} />
@@ -167,11 +167,27 @@ const scrollToSection = (id) => {
                       {user?.role === "teacher" && (
                         <>
                           <Link
-                            to="/my-account"
+                            to="/profile"
                             className="dropdown-item"
                             onClick={() => setUserMenuOpen(false)}
                           >
-                          <User size={16} className="mb-1" /> My Account
+                          <User size={16} className="mb-1 me-1" /> My Profile
+                          </Link>
+
+                          <Link
+                            to="/saved-jobs"
+                            className="dropdown-item"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                          <Heart size={16} className="mb-1 me-1" /> Saved Jobs
+                          </Link>
+
+                          <Link
+                            to="/applied-jobs"
+                            className="dropdown-item"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                          <BriefcaseBusinessIcon size={16} className="mb-1 me-1" /> Applied Jobs
                           </Link>
 
                           <button
@@ -181,7 +197,7 @@ const scrollToSection = (id) => {
                               setUserMenuOpen(false);
                             }}
                           >
-                          <LogOut size={16} className="mb-1" />  Logout
+                          <LogOut size={16} className="mb-1 me-1" />  Logout
                           </button>
                         </>
                       )}

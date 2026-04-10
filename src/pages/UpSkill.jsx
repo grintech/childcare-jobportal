@@ -1,34 +1,49 @@
-import React from 'react'
+import { useEffect } from "react";
 import Navbar from '../components/Navbar'
 import CourseSlider from '../components/CourseSlider'
 import Footer from '../components/Footer'
 import { Link } from 'react-router-dom'
 import { motion } from "framer-motion";
+import { useAuth } from '../context/AuthContext'
+import UpskillAuthPopup from '../components/UpskillAuthPopup'
 
 const UpSkill = () => {
+  const { user } = useAuth();
 
-const leftVariant = {
-  hidden: { x: -80, opacity: 0 },
-  visible: {
-    x: 0,
-    opacity: 1,
-    transition: { duration: 0.7, ease: "easeOut" },
-  },
-};
+  // useEffect(() => {
+  //   if (!user) {
+  //     document.body.style.overflow = "hidden";
+  //   } else {
+  //     document.body.style.overflow = "auto";
+  //   }
+  // }, [user]);
 
-const rightVariant = {
-  hidden: { x: 80, opacity: 0 },
-  visible: {
-    x: 0,
-    opacity: 1,
-    transition: { delay: 0.5, duration: 0.7, ease: "easeOut" },
-  },
-};
+  const leftVariant = {
+    hidden: { x: -80, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { duration: 0.7, ease: "easeOut" },
+    },
+  };
+
+  const rightVariant = {
+    hidden: { x: 80, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { delay: 0.5, duration: 0.7, ease: "easeOut" },
+    },
+  };
 
   return (
     <>
         <div className="upskill_page blue_nav">
             <Navbar />
+
+            {!user && <UpskillAuthPopup />}
+
+
             <div className="job_hero">
                 <div className="container">
                     <div className="row align-items-center">

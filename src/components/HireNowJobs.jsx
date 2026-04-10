@@ -60,14 +60,14 @@ const HireNowJobs = () => {
   };
 
  // Priceslider color 
-useEffect(() => {
-  const percent = (filters.salary_max / 50) * 100;
-  const style = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, #e5e7eb ${percent}%, #e5e7eb 100%)`;
+  useEffect(() => {
+    const percent = (filters.salary_max / 50) * 100;
+    const style = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, #e5e7eb ${percent}%, #e5e7eb 100%)`;
 
-  if (desktopSliderRef.current) {
-    desktopSliderRef.current.style.background = style;
-  }
-}, [filters.salary_max]);
+    if (desktopSliderRef.current) {
+      desktopSliderRef.current.style.background = style;
+    }
+  }, [filters.salary_max]);
 
 
 
@@ -395,7 +395,7 @@ const handleSaveToggle = async (job) => {
                               </span>
                               </h5>
                         
-                          <p className="company mb-2">{job.institution_name}</p>
+                          <Link to='/company' className="company mb-2"><p className="m-0">{job.institution_name}</p></Link>
                           <Link to={`/job/${job.slug}`}>
                             <p className="description small">
                               {stripHtml(job.description)}
