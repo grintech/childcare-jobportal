@@ -292,22 +292,24 @@ const JobDetailPage = () => {
                         </Link>
 
                         <div>
-                          <p className="company_name mb-0">
-                            {job.institution_name}
-                          </p>
+                          <Link to={`/company/${job.institution_slug}`}>
+                            <p className="company_name mb-0">
+                              {job.institution_name}
+                            </p>
+                          </Link>
 
-                          <h4 className="mb-1 fw-semibold">{job.title}</h4>
+                          <h1 className="mb-1 fw-semibold job_title">{job.title}</h1>
 
-                          <div className="small text-muted">
+                          {/* <div className="small text-muted">
                             ⭐ 4.4 • {job.applications_count} applicants
-                          </div>
+                          </div> */}
                         </div>
                       </div>
 
                       {/* META */}
                       <div className="job_meta mb-3">
                         <p className="mb-3">
-                          <MapPin size={14} /> {job.city}, {job.state}
+                          <MapPin size={14} /> {job.address}
                         </p>
                         <p className="d-flex flex-wrap gap-2">
                           <span className="badge bg-secondary text-capitalize">
@@ -402,7 +404,7 @@ const JobDetailPage = () => {
 
                   {/* RIGHT SIDE */}
                   <div className="col-lg-4">
-                    <div className="job_detail_card card_right shadow-sm">
+                    {/* <div className="job_detail_card card_right shadow-sm">
                       <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
                         <BriefcaseBusinessIcon size={22} /> Job Info
                       </h5>
@@ -456,7 +458,107 @@ const JobDetailPage = () => {
                           <span className="">{maskEmail(job.user_email)}</span>
                         </span>
                       </p>
+                    </div> */}
+
+                    <div className="card_right">
+                      <div className="sidebar_card ">
+
+                        {/* Header Strip */}
+                        <div className="sidebar_featured">
+                          <p className="sidebar_featured_label">Job Details</p>
+                          <p className="sidebar_featured_name m-0 d-flex align-items-center gap-2">
+                            <BriefcaseBusinessIcon size={16} />
+                            {job.title || "Job Info"}
+                          </p>
+                        </div>
+
+                        {/* Body */}
+                        <div className="sidebar_body">
+
+                          <p className="contact_section_label">Job Information</p>
+
+                          <div className="contact_box">
+
+                            {/* Experience */}
+                            <div className="contact_row">
+                              <div className="contact_icon">
+                                <Award size={13} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Experience</p>
+                                <p className="contact_info_value">
+                                  {job.experience_min} - {job.experience_max} yrs
+                                </p>
+                              </div>
+                            </div>
+
+
+                            {/* Salary */}
+                            <div className="contact_row">
+                              <div className="contact_icon">
+                                <Award size={13} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Salary</p>
+                                <p className="contact_info_value text_theme">
+                                  {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Duration */}
+                            <div className="contact_row">
+                              <div className="contact_icon">
+                                <Clock size={13} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Duration</p>
+                                <p className="contact_info_value">
+                                  {job.duration} {job.duration_type}
+                                </p>
+                              </div>
+                            </div>
+
+                          </div>
+
+                          {/* Contact Section */}
+                          <p className="contact_section_label mt-3">Contact Info</p>
+
+                          <div className="contact_box">
+
+                            {/* Phone */}
+                            <div className="contact_row">
+                              <div className="contact_icon">
+                                <Phone size={13} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Phone</p>
+                                <p className="contact_info_value">
+                                  {maskPhone(job.phone_no)}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Email */}
+                            <div className="contact_row">
+                              <div className="contact_icon">
+                                <Mail size={13} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Email</p>
+                                <p className="contact_info_value">
+                                  {maskEmail(job.user_email)}
+                                </p>
+                              </div>
+                            </div>
+
+                          </div>
+
+                        </div>
+                      </div>
+
                     </div>
+
                   </div>
                 </div>
 
@@ -490,18 +592,20 @@ const JobDetailPage = () => {
 
                             {/* INFO */}
                             <div className="job_info">
-                              <h5>
+                              <h5 className="text-capitalize">
                                 <Link to={`/job/${item.slug}`}>
                                   {item.title}
                                 </Link>
-                                <span className="verified_badge ms-1">
-                                  <CheckCircle size={16} /> Verified
-                                </span>
+                                {item?.profileStatus?.toLowerCase() === "approved" && (
+                                  <span className="verified_badge ms-1">
+                                    <CheckCircle size={16} /> Verified
+                                  </span>
+                                ) }
                               </h5>
 
-                              <p className="company mb-2">
-                                {item.institution_name}
-                              </p>
+                              <Link to={`/company/${item.institution_slug}`}>
+                                  <p className="company mb-2"> {item.institution_name} </p>
+                              </Link>
 
                               <Link to={`/job/${item.slug}`}>
                                 <p className="description small">
@@ -517,7 +621,7 @@ const JobDetailPage = () => {
 
                               <p className="location m-0">
                                 <MapPin size={14} className="mb-1" />{" "}
-                                {item.city}, {item.state}
+                                {item.address}, {item.state}
                               </p>
                             </div>
 

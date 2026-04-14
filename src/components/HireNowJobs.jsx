@@ -18,11 +18,13 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import api from "../services/api";
 import JobCardSkeleton from "./skeletons/JobCardSkeleton";
-import { Link } from "react-router-dom";
+import { Link , useLocation } from "react-router-dom";
 
 const HireNowJobs = () => {
   const { user, isAuthenticated } = useAuth();
   const currency = import.meta.env.VITE_CURRENCY;
+  const location = useLocation();
+  const filterRef = useRef(null);
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +70,33 @@ const HireNowJobs = () => {
       desktopSliderRef.current.style.background = style;
     }
   }, [filters.salary_max]);
+
+
+  useEffect(() => {
+  const params = new URLSearchParams(location.search);
+
+  const role = params.get("role") || "";
+  const locationParam = params.get("location") || "";
+
+  setFilters((prev) => ({
+    ...prev,
+    role,
+    location: locationParam,
+  }));
+
+}, [location.search]);
+
+useEffect(() => {
+  if (filterRef.current) {
+    const yOffset = -300; // adjust (navbar height)
+    const y =
+      filterRef.current.getBoundingClientRect().top +
+      window.pageYOffset +
+      yOffset;
+
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }
+}, [location.search]);
 
 
 
@@ -139,6 +168,7 @@ const fetchJobs = async (pageNum = 1, isNewSearch = false) => {
     }
   } catch (err) {
     console.log(err);
+    setHasMore(false); //  STOP infinite scroll
   } finally {
     setLoading(false);
     setLoadingMore(false);
@@ -164,7 +194,15 @@ useEffect(() => {
 
   const observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting) {
+      // if (entries[0].isIntersecting) {
+      //   fetchJobs(page + 1, false);
+      // }
+      if (
+        entries[0].isIntersecting &&
+        hasMore &&
+        !loadingMore &&
+        !isFetchingRef.current
+      ) {
         fetchJobs(page + 1, false);
       }
     },
@@ -264,6 +302,7 @@ const handleSaveToggle = async (job) => {
                 duration: 0.6,
                 ease: "easeOut",
               }}
+              ref={filterRef}
              className="col-12 mb-4 ">
               <div className="filter_card p-4  rounded-3 ">
               <div className="row g-3  justify-content-end">
@@ -389,14 +428,17 @@ const handleSaveToggle = async (job) => {
 
                         <div className="job_info">
                         
-                           <h5>
+                           <h5 className="text-capitalize">
                              <Link to={`/job/${job.slug}`}>{job.title} </Link>
-                             <span className="verified_badge ms-1">
-                                <CheckCircle size={16} /> Verified
-                              </span>
-                              </h5>
+
+                             {job?.profile_status === "approved" && (
+                                <span className="verified_badge ms-1">
+                                  <CheckCircle size={16} /> Verified
+                                </span>
+                              )}
+                            </h5>
                         
-                          <Link to='/company' className="company mb-2"><p className="m-0">{job.institution_name}</p></Link>
+                          <Link to={`/company/${job.institution_slug}`} className="company mb-2"><p className="m-0">{job.institution_name}</p></Link>
                           <Link to={`/job/${job.slug}`}>
                             <p className="description small">
                               {stripHtml(job.description)}
@@ -413,8 +455,7 @@ const handleSaveToggle = async (job) => {
                           </div>
 
                           <p className="location m-0">
-                            <MapPin size={14} className="mb-1" /> {job.city}, {job.state},{" "}
-                            {job.country}
+                            <MapPin size={14} className="mb-1" /> {job.suburb} , {job.country}
                           </p>
                         </div>
 
@@ -463,9 +504,9 @@ const handleSaveToggle = async (job) => {
               ) : !loading && (
               <div className="col-12">
                  <div className="d-flex flex-column align-items-center justify-content-center bg-white py-4 px-3 ">
-                <Briefcase size={25} className="mb-2" /> 
-                 <h5 className="text-center">  No jobs found! </h5>
-               </div>
+                  <Briefcase size={25} className="mb-2" /> 
+                  <h5 className="text-center">  No jobs found! </h5>
+                </div>
               </div>
               )}
 
@@ -477,7 +518,7 @@ const handleSaveToggle = async (job) => {
               )}
 
               {!hasMore && jobs.length > 0 && (
-                <div className="col-12 text-center py-3 text-muted  fw-semibold">
+                <div className="col-12 text-center pt-3 text-muted  fw-semibold">
                   You've reached the end!
                 </div>
               )}

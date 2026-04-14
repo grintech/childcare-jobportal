@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-import DashSidebar from "./DashSidebar";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import toast from "react-hot-toast";
@@ -16,7 +15,6 @@ import { object } from "framer-motion/client";
 
 const LIBRARIES = ["places"];
 
-// Fix for CJS/ESM interop — some bundlers expose .default, some don't
 const PhoneInput = ReactPhoneInput?.default ?? ReactPhoneInput;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -418,13 +416,13 @@ const handleImageChange = (e) => {
 
   setProfileFile(file);
   setProfileImage(URL.createObjectURL(file));
-  setRemoveProfileImage(false); // ✅ reset delete flag
+  setRemoveProfileImage(false); //  reset delete flag
 };
 
 const handleRemoveImage = () => {
   setProfileImage("/images/default_img.png");
   setProfileFile(null);
-  setRemoveProfileImage(true); // ✅ important for API
+  setRemoveProfileImage(true); //  important for API
   if (fileInputRef.current) {
     fileInputRef.current.value = null;
   }
@@ -447,7 +445,7 @@ const handleRemoveImage = () => {
     }
 
     setResumeFile(file);
-    setExistingResume(null); // ✅ remove old when new uploaded
+    setExistingResume(null); //  remove old when new uploaded
     setRemoveResume(false);
   };
 
@@ -629,7 +627,7 @@ const handleRemoveImage = () => {
 
       const formData = new FormData();
 
-      // ✅ Profile Image logic
+      //  Profile Image logic
       if (removeProfileImage) {
         formData.append("delete_profile", 1);
         formData.append("profile_image", ""); // optional (depends on backend)
@@ -637,7 +635,7 @@ const handleRemoveImage = () => {
         formData.append("profile_image", profileFile);
       }
 
-      // ✅ Resume logic (FIXED)
+      //  Resume logic (FIXED)
       if (removeResume) {
         formData.append("delete_resume", 1); // or null depending backend
         formData.append("resume", ""); // or null depending backend
@@ -713,80 +711,80 @@ const handleRemoveImage = () => {
       console.error(err);
       toast.error("Something went wrong");
     } finally {
-      setIsUpdating(false); // ✅ IMPORTANT
+      setIsUpdating(false); //  IMPORTANT
     }
   };
 
 
   /*--- Update & Delete Certificates ----*/
 
-const handleCertificateChange = async (certName, key, file) => {
-  if (!file) return;
+  const handleCertificateChange = async (certName, key, file) => {
+    if (!file) return;
 
-  const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-  if (!allowedTypes.includes(file.type)) {
-    toast.error("Only PDF, JPG, PNG files are allowed.");
-    return;
-  }
-  if (file.size > 2 * 1024 * 1024) {
-    toast.error("File must be less than 2 MB.");
-    return;
-  }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PDF, JPG, PNG files are allowed.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File must be less than 2 MB.");
+      return;
+    }
 
-  try {
-    setCertUploading((prev) => ({ ...prev, [key]: true }));
+    try {
+      setCertUploading((prev) => ({ ...prev, [key]: true }));
 
-    const formData = new FormData();
-    formData.append("certificate_file[]", file);
-    formData.append("certificate_name[]", certName);
+      const formData = new FormData();
+      formData.append("certificate_file[]", file);
+      formData.append("certificate_name[]", certName);
 
-    const data = await api.post("/update/certificate", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+      const data = await api.post("/update/certificate", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-    if (data?.status) {
-      toast.success(data.message || `${certName} uploaded successfully!`);
-      // toast.success(`${certName} uploaded successfully!`);
+      if (data?.status) {
+        toast.success(data.message || `${certName} uploaded successfully!`);
+        // toast.success(`${certName} uploaded successfully!`);
 
-      // ✅ Auto update state without page refresh
-      const newCert = data?.data?.[0]; // adjust based on your API response shape
-      if (newCert) {
-        setCertificates((prev) => ({ ...prev, [key]: newCert }));
+        // ✅ Auto update state without page refresh
+        const newCert = data?.data?.[0]; // adjust based on your API response shape
+        if (newCert) {
+          setCertificates((prev) => ({ ...prev, [key]: newCert }));
+        } else {
+          fetchProfile(); // fallback
+        }
       } else {
-        fetchProfile(); // fallback
+        toast.error(data?.message || "Upload failed");
       }
-    } else {
-      toast.error(data?.message || "Upload failed");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setCertUploading((prev) => ({ ...prev, [key]: false }));
     }
-  } catch (err) {
-    console.error(err);
-    toast.error("Something went wrong");
-  } finally {
-    setCertUploading((prev) => ({ ...prev, [key]: false }));
-  }
-};
+  };
 
-const handleCertificateDelete = async (certId, key) => {
-  try {
-    setCertDeleting((prev) => ({ ...prev, [key]: true }));
+  const handleCertificateDelete = async (certId, key) => {
+    try {
+      setCertDeleting((prev) => ({ ...prev, [key]: true }));
 
-    const data = await api.delete(`/delete/certificate/${certId}`);
+      const data = await api.delete(`/delete/certificate/${certId}`);
 
-    if (data?.status) {
-      toast.success("Certificate deleted successfully!");
+      if (data?.status) {
+        toast.success("Certificate deleted successfully!");
 
-      // ✅ Auto remove from state without page refresh
-      setCertificates((prev) => ({ ...prev, [key]: null }));
-    } else {
-      toast.error(data?.message || "Delete failed");
+        // ✅ Auto remove from state without page refresh
+        setCertificates((prev) => ({ ...prev, [key]: null }));
+      } else {
+        toast.error(data?.message || "Delete failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setCertDeleting((prev) => ({ ...prev, [key]: false }));
     }
-  } catch (err) {
-    console.error(err);
-    toast.error("Something went wrong");
-  } finally {
-    setCertDeleting((prev) => ({ ...prev, [key]: false }));
-  }
-};
+  };
 
 
 
@@ -816,7 +814,7 @@ const handleCertificateDelete = async (certId, key) => {
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        // ✅ HANDLE MULTIPLE ERRORS CLEANLY
+        //  HANDLE MULTIPLE ERRORS CLEANLY
         if (data?.errors) {
           const allErrors = Object.values(data.errors).flat().join("\n");
           toast.error(allErrors); // single toast
@@ -827,7 +825,7 @@ const handleCertificateDelete = async (certId, key) => {
     } catch (err) {
       console.error(err);
 
-      // ✅ SAME FOR CATCH
+      //  SAME FOR CATCH
       if (err?.errors) {
         const allErrors = Object.values(err.errors).flat().join("\n");
         toast.error(allErrors);
@@ -849,21 +847,15 @@ const handleCertificateDelete = async (certId, key) => {
               {/* <h1 className="mb-3 sec-title ">My Profile</h1> */}
 
               <div className="cover_image">
-                <img src="/images/profile_cover.png" className="w-100 rounded-4" style={{height:"200px", objectFit:"cover"}} alt="" />
+                <img src="/images/profile_cover2.jpg" className="w-100 rounded-4" style={{height:"200px", objectFit:"cover"}} alt="" />
               </div>
 
-
-              {/* <div className="col-lg-4 col-xl-3 mb-4 mb-lg-0">
-                <DashSidebar />
-              </div> */}
-
-              {/* <div className="col-lg-8 col-xl-9 mb-4 mb-lg-0"> */}
               <div className="col-11 mx-auto" style={{marginTop:"-50px"}}>
                 {isLoading ? (
                   <ProfileSkeleton />
                 ) : (
                   <div className="row">
-                    <div className="col-8">
+                    <div className="col-lg-8">
                        {/* PERSONAL DETAILS */}
                       <div className=" mb-4">
                         <div className="card rounded-4 border-0 h-100">
@@ -913,7 +905,7 @@ const handleCertificateDelete = async (certId, key) => {
                           </div>
 
                           {/* UPLOAD BUTTON */}
-                          <div className="ms-3 mt-2">
+                          <div className=" mt-2">
                             <input
                               type="file"
                               id="upload_image"
@@ -927,7 +919,7 @@ const handleCertificateDelete = async (certId, key) => {
                               Upload Image <i className="fas fa-upload"></i>
                             </button>
 
-                            <p className="mb-0">
+                            <p className="mb-0 small">
                               Image must be JPEG or PNG format and less than 2 MB.
                             </p>
                           </div>

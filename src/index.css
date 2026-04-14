@@ -674,7 +674,8 @@ html {
 
 
 .top_institutes{
-  background:#f9f9f9;
+  /* background:#f9f9f9; */
+  background:var(--light);
   padding: 80px 0;
 }
 
@@ -731,6 +732,8 @@ html {
   padding:40px 20px;
   transition:.3s;
   border-bottom:3px solid var(--secondary);
+  
+  gap: 10px;
 }
 
 .institute_card:hover{
@@ -742,16 +745,18 @@ html {
 }
 
 .institute_card img{
-  width:60px;
-  height:60px;
+  width:55px;
+  height:55px;
   object-fit:cover;
+  background-color: var(--light);
   border-radius:50%;
-  margin-bottom:15px;
+  margin-bottom: 15px;
 }
-
+.institute_card .job_logo{margin-bottom: 15px;}
 .institute_card h6{
   font-weight:600;
   margin-bottom:5px;
+  text-transform: capitalize;
 }
 
 .location{
@@ -1949,14 +1954,14 @@ html {
 }
  
 .progress_label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--secondary);
   white-space: nowrap;
 }
  
 .progress_bar {
   flex: 1;
-  height: 6px;
+  height: 8px;
   background: #eef1f5;
   border-radius: 10px;
   overflow: hidden;
@@ -1970,7 +1975,7 @@ html {
 }
  
 .progress_pct {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--primary);
 }
@@ -2262,7 +2267,7 @@ textarea:focus {
 }
  
 .contact_info_label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1;
   margin-bottom: 2px;
@@ -2284,9 +2289,13 @@ textarea:focus {
   text-align: center;
 }
 
-/*------ Eomployer Details ------*/
+/*------ Employer Details ------*/
 
 .emp_tabs .btn:active{border-left: 0 !important; border-top: 0 !important; border-right: 0 !important;}
+
+.employer_name{font-size: 22px; color: var(--secondary); text-transform: capitalize;}
+
+.job_title{font-size: 28px; text-transform: capitalize;}
 
 
 /*---- MEDIA QUERIES ------*/
@@ -2371,6 +2380,7 @@ textarea:focus {
 @media (max-width:425px) {
   .navbar .navbar-brand img{width: 160px;}
   .teacher_profiles .profile_wrap{flex-direction: column;}
+  .employer_name{font-size: 18px; color: var(--secondary); text-transform: capitalize;}
 }
 
 @media (max-width:375px) {
@@ -2389,5 +2399,7 @@ textarea:focus {
 
 @media (max-width:350px) {
  .btn-login, .btn-post{font-size: 13px !important;}
- 
+ .cert_grid {
+    grid-template-columns: 1fr ;
+  }
 }

@@ -21,6 +21,7 @@ import AppliedJobs from './pages/dashboard/AppliedJobs'
 import JobDetailPage from './pages/JobDetailPage'
 import TeacherDetail from './pages/TeacherDetail'
 import EmployerDetail from './pages/EmployerDetail'
+import GuestOnlyRoute from './routes/GuestOnlyRoute'
 
 const App = () => {
   return (
@@ -44,10 +45,10 @@ const App = () => {
         <Route path="/jobs" element={<FindJobs />} />
         <Route path="/profiles" element={<HireNow />} />
         <Route path="/get-trained" element={<UpSkill />} />
-        <Route path="/job-post" element={<PostJob />} />
+        <Route path="/job-post" element={<GuestOnlyRoute><PostJob /></GuestOnlyRoute>} />
         <Route path="/job/:slug" element={<JobDetailPage />} />
         <Route path="/profile/:slug" element={<TeacherDetail />} />
-        <Route path="/company" element={<EmployerDetail />} />
+        <Route path="/company/:slug" element={<EmployerDetail />} />
 
         {/*  Protected Pages */}
         <Route path="/my-account" element={ <ProtectedRoute ><MyAccount /></ProtectedRoute>} />

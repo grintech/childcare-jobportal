@@ -52,7 +52,7 @@ const Homepage = () => {
       <TopInstitutes />
 
       <div className="container py-5">
-        <img src="/images/bg2.png" className='w-100 rounded-3' alt="" />
+        <img src="/images/bg3.png" className='w-100 rounded-3' alt="" />
       </div>
 
       <QuickSearch />

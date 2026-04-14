@@ -1,6 +1,17 @@
-import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const QuickSearch = () => {
+  const navigate = useNavigate();
+
+  // Handlers
+  const handleRoleClick = (role) => {
+    navigate(`/?role=${encodeURIComponent(role)}`);
+  };
+
+  const handleLocationClick = (location) => {
+    navigate(`/?location=${encodeURIComponent(location)}`);
+  };
+
   return (
     <section className="quick-search py-5">
       <div className="container">
@@ -11,42 +22,51 @@ const QuickSearch = () => {
         <div className="mb-2 d-flex flex-wrap align-items-center">
           <span className="me-3 text-muted">Classifications</span>
 
-          <a href="#" className="qs-link">Child Care</a>
-          <a href="#" className="qs-link">Early Childhood Education</a>
-          <a href="#" className="qs-link">Primary Teacher</a>
-          <a href="#" className="qs-link">Secondary Teacher</a>
-          <a href="#" className="qs-link">Special Education</a>
-          <a href="#" className="qs-link">Teaching Assistant</a>
-
-          {/* <button className="btn btn-sm btn-light border ms-2">
-            View all ⌄
-          </button> */}
+          {[
+            "Childcare Assistant",
+            "Early Childhood Education",
+            "Primary Teacher",
+            "KinderGar Teacher",
+            "Special Education",
+            "Childcare Centre",
+          ].map((role) => (
+            <span
+              key={role}
+              className="qs-link"
+              onClick={() => handleRoleClick(role)}
+              style={{ cursor: "pointer" }}
+            >
+              {role}
+            </span>
+          ))}
         </div>
 
         {/* Locations */}
-       <div className="mb-2 d-flex flex-wrap">
-        <span className="me-3 text-muted">Locations</span>
+        <div className="mb-2 d-flex flex-wrap">
+          <span className="me-3 text-muted">Locations</span>
 
-        <a href="#" className="qs-link">Sydney</a>
-        <a href="#" className="qs-link">Melbourne</a>
-        <a href="#" className="qs-link">Brisbane</a>
-        <a href="#" className="qs-link">Perth</a>
-        <a href="#" className="qs-link">Adelaide</a>
-        <a href="#" className="qs-link">Gold Coast</a>
-        <a href="#" className="qs-link">Canberra</a>
-        <a href="#" className="qs-link">Newcastle</a>
-      </div>
-        {/* Other */}
-        <div className="d-flex flex-wrap">
-          <span className="me-3 text-muted">Other</span>
-
-          <a href="#" className="qs-link">All Teaching Jobs</a>
-          <a href="#" className="qs-link">Work From Home</a>
-          <a href="#" className="qs-link">Part-Time Teaching</a>
-          <a href="#" className="qs-link">International Schools</a>
-          <a href="#" className="qs-link">Private Tutors</a>
-          <a href="#" className="qs-link">Salary Guide</a>
+          {[
+            "Sydney",
+            "Melbourne",
+            "Beerwah QLD",
+            "Perth",
+            "Myrtleford VIC",
+            "Adelaide",
+            "Gold Coast",
+            "Canberra",
+            "The Rocks",
+          ].map((loc) => (
+            <span
+              key={loc}
+              className="qs-link"
+              onClick={() => handleLocationClick(loc)}
+              style={{ cursor: "pointer" }}
+            >
+              {loc}
+            </span>
+          ))}
         </div>
+
 
       </div>
     </section>

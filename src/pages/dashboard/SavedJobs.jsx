@@ -131,9 +131,12 @@ const SavedJobs = () => {
                             {/* INFO */}
                             <div className="job_info">
                               <h5><Link to={`/job/${job.slug}`}>{job.title}</Link></h5>
-                              <p className="company">
-                                {job.institution_name}
-                              </p>
+                              <Link to={`/company/${job.institution_slug}`}>
+                                <p className="company">
+                                  {job.institution_name}
+                                </p>
+                              
+                              </Link>
 
                               <p className="salary">
                                 {currency}{job.salary_min} - {currency}{job.salary_max} (

@@ -967,7 +967,7 @@ const handlePhoneChange = (value) => {
                       </div>
 
                       <div className="col-12">
-                        <label>Enter address <span className="text-danger">*</span></label>
+                        <label>Enter Location <span className="text-danger">*</span></label>
                         {isLoaded ? (
                           <Autocomplete
                             onLoad={(auto) => setAutocomplete(auto)}
@@ -980,7 +980,7 @@ const handlePhoneChange = (value) => {
                             <input
                               type="text"
                               className={`form-control ${errors.address ? "is-invalid" : ""}`}
-                              placeholder="Type your address..."
+                              placeholder="Type your location..."
                               value={formData.address}
                               onChange={handleAddressChange}
                             />

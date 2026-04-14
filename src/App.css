@@ -309,6 +309,7 @@
     /* box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; */
     /* border: 1px solid var(--secondary); */
     box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    z-index: 99;
 }
 
 .home_filter_wrapper .filter_card {margin-top: -170px; }
@@ -646,15 +647,15 @@
 } */
 
 
-
+/* 
 .card_right{
   background-color: #c4f5ff;
-}
+} */
 .card_right svg {
   flex-shrink: 0;
 }
 
-.job_detail_card.card_right {
+.card_right {
     position: sticky;
     top: 110px;
 }
