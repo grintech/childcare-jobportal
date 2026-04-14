@@ -39,7 +39,7 @@ const Homepage = () => {
       <Navbar />
 
       {/* Show popup only when user is NOT logged in — no dismiss option */}
-      {!user && <AuthPopup />}
+      {/* {!user && <AuthPopup />} */}
 
       <Hero />
 

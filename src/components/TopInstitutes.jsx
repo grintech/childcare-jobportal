@@ -48,7 +48,7 @@ const institutes = [
     openings: 3,
   },
   {
-    name: "EduCare Institute",
+    name: "Early Learning Careers Institute",
     location: "Singapore",
     logo: "https://images.unsplash.com/photo-1588072432836-e10032774350?w=200",
     openings: 1,

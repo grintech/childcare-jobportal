@@ -40,7 +40,7 @@ const rightVariant = {
                     animate="visible"
                 >
                     <h1 className="text-white">
-                    Find Your Dream Job on EduCare
+                    Find Your Dream Job on Early Learning Careers
                     </h1>
 
                     <motion.p

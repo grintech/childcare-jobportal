@@ -41,7 +41,7 @@ const UpSkill = () => {
         <div className="upskill_page blue_nav">
             <Navbar />
 
-            {!user && <UpskillAuthPopup />}
+            {/* {!user && <UpskillAuthPopup />} */}
 
 
             <div className="job_hero">

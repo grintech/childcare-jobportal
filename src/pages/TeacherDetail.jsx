@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   MapPin, Phone, Mail, Star, CheckCircle, User2,
   Briefcase, GraduationCap, Award, UserCheck, Send,
-  Loader, MessageSquare, Calendar
+  Loader, MessageSquare, Calendar,
+  Pencil
 } from "lucide-react";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
@@ -83,10 +84,38 @@ const TeacherDetail = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleTeacher, setScheduleTeacher] = useState(null);
 
-  const canViewContact =
-    isAuthenticated && user?.role === "principal" && user?.has_subscription;
+  const [reviews, setReviews] = useState([]);
+  const [myReview, setMyReview] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const reviewRef = useRef(null);
+
+  const canViewContact = isAuthenticated && user?.role === "principal" && user?.has_subscription;
+
+ const isOwnProfile = user && teacher && user.id === teacher.id;
+
+  const canReview =
+    isAuthenticated &&
+    user?.role === "principal" &&   // only principal can review teacher
+    !isOwnProfile;
 
   useEffect(() => { fetchTeacher(); }, [slug]);
+
+
+  const scrollToReview = () => {
+  if (!reviewRef.current) return;
+
+  const yOffset = -110; // 👈 your top spacing
+  const y =
+    reviewRef.current.getBoundingClientRect().top +
+    window.pageYOffset +
+    yOffset;
+
+  window.scrollTo({ top: y, behavior: "smooth" });
+};
+
+// Fetch Teacher API
 
   const fetchTeacher = async () => {
     try {
@@ -108,11 +137,24 @@ const TeacherDetail = () => {
         educations: d.teacher?.educations || [],
         experiences: d.teacher?.experiences || [],
         profileCompletion: d.teacher?.profile_completion || 0,
-        jobs: d.teacher?.jobs_count || 1,
-        degrees: d.teacher?.degrees_count || 3,
-        zones: d.teacher?.zones_count || 4,
-        rating: 4.5,
+        // rating: 4.5,
+        rating: Number(d.average_rating) || 0,
       });
+
+      const allReviews = d.received_reviews || [];
+
+      setReviews(allReviews);
+      // find logged-in user review
+      if (user) {
+        const existing = allReviews.find(
+          (r) => r.reviewer_id === user.id
+        );
+
+        if (existing) {
+          setMyReview(existing);
+        }
+      }
+
     } catch (err) {
       console.log(err);
     } finally {
@@ -120,15 +162,107 @@ const TeacherDetail = () => {
     }
   };
 
-  const renderStars = (rating, size = 14) =>
-    [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        size={size}
-        fill={i < Math.floor(rating) ? "#ffc107" : "none"}
-        stroke="#ffc107"
-      />
-    ));
+
+// Submit Review API
+  const handleSubmitReview = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login first");
+      return;
+    }
+
+    if (!userRating) {
+      toast.error("Please select rating");
+      return;
+    }
+
+    try {
+      setReviewLoading(true);
+
+      const payload = {
+        reviewed_id: teacher.id,
+        reviewed_role: "teacher", // static here
+        rating: userRating,
+        comment: feedback,
+        job_id: null,
+      };
+
+      let res;
+
+      if (myReview && isEditing) {
+        // UPDATE
+        res = await api.post(`/review/update/${myReview.id}`, payload);
+      } else {
+        // CREATE
+        res = await api.post(`/review/save`, payload);
+      }
+
+      toast.success(res.message || "Review submitted");
+      // ✅ clear form after submit/update
+      setUserRating(0);
+      setFeedback("");
+      setIsEditing(false);
+
+      // setMyReview(null);
+
+      // 🔄 refresh
+      fetchTeacher();
+
+    } catch (err) {
+      toast.error(err?.message || "Something went wrong");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+// Edit Review API
+  const handleEditReview = (review) => {
+  setUserRating(review.rating);
+  setFeedback(review.comment);
+  setMyReview(review);
+  setIsEditing(true);
+
+  scrollToReview(); 
+};
+
+
+ const renderStars = (rating) => {
+  if (!rating || rating <= 0) return null;
+
+  const rounded = Math.round(rating * 10) / 10; //  fixes 3.299999 → 3.3
+
+  return [...Array(5)].map((_, i) => (
+    <Star
+      key={i}
+      size={16}
+      fill={i < Math.floor(rounded) ? "#ffc107" : "none"}
+      stroke="#ffc107"
+    />
+  ));
+};
+
+  const timeAgo = (date) => {
+    const now = new Date();
+    const past = new Date(date);
+    const diff = Math.floor((now - past) / 1000); // seconds
+
+    if (diff < 60) return `${diff} sec${diff !== 1 ? "s" : ""} ago`;
+
+    const mins = Math.floor(diff / 60);
+    if (mins < 60) return `${mins} min${mins !== 1 ? "s" : ""} ago`;
+
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hr${hours !== 1 ? "s" : ""} ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days} day${days !== 1 ? "s" : ""} ago`;
+
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} month${months !== 1 ? "s" : ""} ago`;
+
+    const years = Math.floor(months / 12);
+    return `${years} year${years !== 1 ? "s" : ""} ago`;
+  };
+
 
   return (
     <>
@@ -179,10 +313,11 @@ const TeacherDetail = () => {
                           {teacher.suburb}, {teacher.location}
                         </p>
 
-                        <div className="stars_row">
-                          {renderStars(teacher.rating)}
-                          <span>{teacher.rating}</span>
-                        </div>
+                          {teacher.rating > 0 && (
+                            <div className="stars_row">
+                              {renderStars(teacher.rating)}
+                            </div>
+                          )}
 
                         <div className="progress_wrap">
                           <span className="progress_label">Profile Completion</span>
@@ -257,38 +392,112 @@ const TeacherDetail = () => {
                   </div>
 
                   {/* REVIEW */}
-                  <div className="td-card">
-                    <h6>Leave a Review</h6>
+                  {canReview && (
+                    <div className="td-card" ref={reviewRef} >
+                      <h6>Leave a Review</h6>
 
-                    <p style={{ fontSize: 14, marginBottom: 8 }}>
-                      Your Rating
-                    </p>
+                      <p style={{ fontSize: 14, marginBottom: 8 }}>
+                        Your Rating
+                      </p>
 
-                    <div className="stars_row big">
-                      {[1, 2, 3, 4, 5].map((r) => (
-                        <Star
-                          key={r}
-                          onClick={() => setUserRating(r)}
-                          onMouseEnter={() => setHoverRating(r)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          fill={r <= (hoverRating || userRating) ? "#ffc107" : "none"}
-                          stroke="#ffc107"
-                        />
-                      ))}
+                      <div className="stars_row big">
+                        {[1, 2, 3, 4, 5].map((r) => (
+                          <Star
+                            key={r}
+                            onClick={() => setUserRating(r)}
+                            onMouseEnter={() => setHoverRating(r)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            fill={r <= (hoverRating || userRating) ? "#ffc107" : "none"}
+                            stroke="#ffc107"
+                          />
+                        ))}
+                      </div>
+
+                      <textarea
+                        rows={3}
+                        placeholder="Share your experience with this teacher..."
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        className="mb-3"
+                      />
+
+                    <button className="btn-post" onClick={handleSubmitReview} disabled={reviewLoading}>
+                        {reviewLoading ? "Please wait..." : (
+                          <>
+                            <Send size={13} />
+                            {isEditing ? "Update Review" : "Submit Review"}
+                          </>
+                        )}
+                      </button>
                     </div>
+                  )}
 
-                    <textarea
-                      rows={3}
-                      placeholder="Share your experience with this teacher..."
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      className="mb-3"
-                    />
 
-                    <button className="btn-post">
-                      <Send size={13} /> Submit Review
-                    </button>
+                  <div className="td-card">
+                    <h6 className="mb-3">Reviews ({reviews.length})</h6>
+
+                    {reviews.length === 0 ? (
+                      <p className="text-muted">No reviews yet</p>
+                    ) : (
+                      reviews.map((r) => {
+                      const isMyReview = user && r.reviewer_id === user.id;
+
+                      return (
+                        <div key={r.id} className="review_item mb-3">
+
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <div className="d-flex align-items-center gap-2">
+
+                              {r.reviewer?.director_profile?.profile_image_url ? (
+                                <img
+                                  src={r.reviewer.director_profile.profile_image_url}
+                                  alt={r.reviewer?.name}
+                                  className="review_avatar"
+                                />
+                              ) : (
+                                <div className="review_avatar_fallback">
+                                  <User2 size={15} />
+                                </div>
+                              )}
+
+                              {/* Name + time */}
+                              <div className="d-flex align-items-center">
+                                <strong className="text-capitalize">
+                                  {r.reviewer?.name || "User"}
+                                </strong>
+
+                                <span className="small ms-2 text-muted">
+                                  {timeAgo(r.created_at)}
+                                </span>
+
+                                {isMyReview && (
+                                  <Pencil
+                                    size={14}
+                                    className="cursor-pointer text_theme ms-2"
+                                    onClick={() => handleEditReview(r)}
+                                    title="Edit"
+                                  />
+                                )}
+                              </div>
+
+                            </div>
+
+                            <div className="d-flex">
+                              {renderStars(r.rating, 15)}
+                            </div>
+                          </div>
+
+                          <small className="mb-1 small text-muted">
+                           
+                          </small>
+
+                          <p className="mb-0 review_comment">{r.comment}</p>
+                        </div>
+                      );
+                    })
+                    )}
                   </div>
+
                 </div>
 
                 {/* ===== RIGHT SIDEBAR ===== */}
@@ -306,7 +515,7 @@ const TeacherDetail = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="sidebar_stats">
+                    {/* <div className="sidebar_stats">
                       <div className="stat_item">
                         <strong>{teacher.jobs}</strong>
                         <span>Jobs</span>
@@ -319,32 +528,10 @@ const TeacherDetail = () => {
                         <strong>{teacher.zones}</strong>
                         <span>Zone</span>
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Actions + Contact */}
                     <div className="sidebar_body">
-                      <div className="sidebar_actions">
-                        <button
-                        className="hire_btn"
-                        onClick={() => {
-                            if (!isAuthenticated) {
-                            toast.error("Please login to continue!");
-                            return;
-                            }
-
-                            if (user?.role !== "principal") {
-                            toast.error("Only employer can hire teachers!");
-                            return;
-                            }
-
-                            setScheduleTeacher(teacher);
-                            setShowScheduleModal(true);
-                        }}
-                        >
-                         <UserCheck size={17} /> Schedule Interview
-                        </button>
-
-                      </div>
 
                       <p className="contact_section_label">Contact Info</p>
 
@@ -408,6 +595,30 @@ const TeacherDetail = () => {
                           </div>
                         </div>
                       </div>
+
+                      <div className="sidebar_actions">
+                        <button
+                        className="hire_btn"
+                        onClick={() => {
+                            if (!isAuthenticated) {
+                            toast.error("Please login to continue!");
+                            return;
+                            }
+
+                            if (user?.role !== "principal") {
+                            toast.error("Only employer can hire teachers!");
+                            return;
+                            }
+
+                            setScheduleTeacher(teacher);
+                            setShowScheduleModal(true);
+                        }}
+                        >
+                         <UserCheck size={17} /> Schedule Interview
+                        </button>
+
+                      </div>
+
                     </div>
                   </div>
                 </div>

@@ -51,11 +51,11 @@ const Footer = () => {
           <div className="col-lg-4 mb-4">
             <img
               src="/images/logo_white.png"
-              alt="Educare"
+              alt="Early Learning Careers"
               className="footer_logo mb-3"
             />
             <p className="footer_desc">
-              Educare connects passionate educators with leading childcare
+              Early Learning Careers connects passionate educators with leading childcare
               centres across Australia. Find jobs, hire talent, and grow your career.
             </p>
 
@@ -122,7 +122,7 @@ const Footer = () => {
       </div>
         <div className="footer_bottom text-center">
           <p className="mb-0">
-            © {new Date().getFullYear()} <Link to="/">EduCare</Link> | All rights reserved.
+            © {new Date().getFullYear()} <Link to="/">Early Learning Careers</Link> | All rights reserved.
           </p>
         </div>
     </footer>

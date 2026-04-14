@@ -90,13 +90,14 @@ const SavedJobs = () => {
         <div className="saved_jobs top_padding">
           <div className="container py-4">
             <div className="row">
-              <h1 className="mb-3 sec-title text-center">Saved Jobs</h1>
+              <h1 className="mb-3 sec-title ">Saved Jobs</h1>
 
-              <div className="col-lg-4 col-xl-3 mb-4 mb-lg-0">
+              {/* <div className="col-lg-4 col-xl-3 mb-4 mb-lg-0">
                 <DashSidebar />
-              </div>
+              </div> */}
 
-              <div className="col-lg-8 col-xl-9 mb-4 mb-lg-0">
+              {/* <div className="col-lg-8 col-xl-9 mb-4 mb-lg-0"> */}
+              <div className="col-lg-12">
                 <div className="row">
 
                   {/* LOADING */}

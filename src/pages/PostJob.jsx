@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 // import { LoadScript, Autocomplete } from "@react-google-maps/api";
@@ -9,14 +9,14 @@ import { UploadCloud, X, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext"; // adjust path if needed
 import { useNavigate } from "react-router-dom";
 
-// const BASE_URL = "https://childcrm.grincloudhost.com/public/api";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const LIBRARIES = ["places"];
 
 const INITIAL_FORM = {
   title: "",
-  category: "",
+  job_category_id: "", 
+  other: "",         
   description: "",
   skills: [],
   note: "",
@@ -113,19 +113,90 @@ const PostJob = () => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [employerData, setEmployerData] = useState(INITIAL_EMPLOYER);
 
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
+
   const { isLoaded } = useJsApiLoader({
    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
    libraries: LIBRARIES,
  });
 
-  const categories = [
-    "Childcare Centre Manager",
-    "Childcare Assistant Centre Manager",
-    "Early Childhood Teacher",
-    "Childcare Lead Educator",
-    "Childcare Assistant Educator",
-    "Childcare Cook",
-  ];
+  // const categories = [
+  //   "Childcare Centre Manager",
+  //   "Childcare Assistant Centre Manager",
+  //   "Early Childhood Teacher",
+  //   "Childcare Lead Educator",
+  //   "Childcare Assistant Educator",
+  //   "Childcare Cook",
+  // ];
+
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryResults, setCategoryResults] = useState([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [selectedCategoryLabel, setSelectedCategoryLabel] = useState("");
+
+  const searchDebounceRef = useRef(null);
+
+  const searchCategories = (query) => {
+    // Clear previous debounce timer
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+
+    if (!query.trim()) {
+      setCategoryResults([]);
+      setShowCategoryDropdown(false);
+      setCategoryLoading(false);
+      return;
+    }
+
+    setCategoryLoading(true);
+    setShowCategoryDropdown(true); // show dropdown with spinner while waiting
+
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${BASE_URL}/jobs-categories?search=${encodeURIComponent(query)}`,
+          { headers: { Accept: "application/json" } }
+        );
+        const data = await res.json();
+        const results = data?.data || [];
+
+        if (!data.status || results.length === 0) {
+          // API returned no results — show the "not found" message + Other option
+          setCategoryResults([{ id: "__no_results__", name: data.message || "No job categories found." }, { id: "other", name: "Other" }]);
+        } else {
+          // Normal results + always append Other at end
+          setCategoryResults([...results, { id: "other", name: "Other" }]);
+        }
+
+        setShowCategoryDropdown(true);
+      } catch {
+        setCategoryResults([
+          { id: "__no_results__", name: "Failed to fetch categories." },
+          { id: "other", name: "Other" },
+        ]);
+        setShowCategoryDropdown(true);
+      } finally {
+        setCategoryLoading(false);
+      }
+    }, 400); // 400ms debounce — feels snappy but doesn't hammer the API
+  };
+
+
+const handleCategorySelect = (item) => {
+  if (item.id === "other") {
+    setFormData(prev => ({ ...prev, job_category_id: "other", title: "none", other: "" }));
+    setSelectedCategoryLabel("Other");
+  } else {
+    setFormData(prev => ({ ...prev, job_category_id: item.id, title: item.name, other: "" }));
+    setSelectedCategoryLabel(item.name);
+  }
+  setCategorySearch(item.id === "other" ? "Other" : item.name);
+  setShowCategoryDropdown(false);
+  if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
+};
+
 
   // ── Google Places ────────────────────────────────────────────────────────────
 
@@ -215,16 +286,18 @@ const validateDeadline = (value) => {
 };
 
   // ── Step Validation ──────────────────────────────────────────────────────────
-  const validateStep1 = () => {
-    const e = {};
-    if (!formData.title.trim()) e.title = "Job title is required.";
-    if (!formData.category) e.category = "Category is required.";
-    if (!formData.description || formData.description === "<p><br></p>") e.description = "Description is required.";
-    setErrors(e);
-    return !Object.keys(e).length;
-  };
+ const validateStep1 = () => {
+  const e = {};
+  if (!formData.job_category_id) e.title = "Please select a job category.";
+  if (formData.job_category_id === "other" && !formData.other.trim())
+    e.other = "Please enter your custom job title.";
+  if (!formData.description || formData.description === "<p><br></p>")
+    e.description = "Description is required.";
+  setErrors(e);
+  return !Object.keys(e).length;
+};
 
-  const validateStep2 = () => {
+const validateStep2 = () => {
   const e = {};
 
   const minExp = Number(formData.expMin);
@@ -233,18 +306,10 @@ const validateDeadline = (value) => {
   if (!formData.jobType) e.jobType = "Job type is required.";
   if (!formData.workMode) e.workMode = "Work mode is required.";
 
-  if (!formData.durationType)
-  e.durationType = "Please select a duration type.";
-
-if (formData.durationType && !formData.duration)
-  e.duration = "Duration is required.";
-
   if (formData.expMin && minExp <= 0)
     e.expMin = "Min experience must be greater than 0.";
-
   if (formData.expMax && maxExp <= 0)
     e.expMax = "Max experience must be greater than 0.";
-
   if (minExp && maxExp && maxExp < minExp)
     e.expMax = "Max experience cannot be less than min.";
 
@@ -255,7 +320,8 @@ if (formData.durationType && !formData.duration)
   return !Object.keys(e).length;
 };
 
-  const validateStep3 = () => {
+
+const validateStep3 = () => {
   const e = {};
 
   const min = Number(formData.minSalary);
@@ -263,20 +329,21 @@ if (formData.durationType && !formData.duration)
 
   if (!formData.minSalary || min <= 0)
     e.minSalary = "Min salary must be greater than 0.";
-
   if (!formData.maxSalary || max <= 0)
     e.maxSalary = "Max salary must be greater than 0.";
-
   if (min && max && max < min)
     e.maxSalary = "Max salary cannot be less than min salary.";
+  if (!formData.salary_type)
+    e.salary_type = "Please select a salary type.";
 
-  // Deadline validation
   const deadlineError = validateDeadline(formData.deadline);
   if (deadlineError) e.deadline = deadlineError;
 
   setErrors(e);
   return !Object.keys(e).length;
 };
+
+
 
   const next = () => {
     if (step === 1 && !validateStep1()) return;
@@ -301,6 +368,15 @@ if (formData.durationType && !formData.duration)
     handleChange("images", [...formData.images, ...files].slice(0, 5));
   };
 
+
+  const handleLogoUpload = (file) => {
+  handleEmployerChange("profile_image", file);
+
+  if (file) {
+    setLogoPreview(URL.createObjectURL(file));
+  }
+};
+
   // ── Reset all state & redirect ───────────────────────────────────────────────
   const resetAndRedirect = (token) => {
     setFormData(INITIAL_FORM);
@@ -323,42 +399,51 @@ if (formData.durationType && !formData.duration)
   };
 
   // ── Build job FormData payload ───────────────────────────────────────────────
-  const buildJobPayload = () => {
-    const jobTypeMap = {
-      "Full Time": "full_time", "Part Time": "part_time",
-      "Contract": "contract", "Internship": "internship", "Freelance": "freelance",
-    };
-    const workModeMap = { "Remote": "remote", "Hybrid": "hybrid", "Onsite": "onsite" };
-
-    const payload = new FormData();
-    payload.append("title", formData.title);
-    payload.append("description", formData.description);
-    payload.append("job_category", formData.category);
-    payload.append("job_type", jobTypeMap[formData.jobType] || formData.jobType.toLowerCase());
-    payload.append("work_mode", workModeMap[formData.workMode] || formData.workMode.toLowerCase());
-    payload.append("duration_type", formData.durationType);
-    payload.append("duration", formData.duration);
-    payload.append("additional_note", formData.note);
-    payload.append("experience_min", formData.expMin);
-    payload.append("experience_max", formData.expMax);
-    payload.append("salary_min", formData.minSalary);
-    payload.append("salary_max", formData.maxSalary);
-    payload.append("salary_negotiable", formData.negotiable ? 1 : 0);
-    payload.append("address", formData.address);
-    payload.append("country", formData.country);
-    // payload.append("state", formData.state);
-    payload.append("city", formData.city);
-    payload.append("suburb", formData.suburb);
-    payload.append("latitude", formData.latitude);
-    payload.append("longitude", formData.longitude);
-    payload.append("skills", JSON.stringify(formData.skills));
-    payload.append("apply_type", formData.applyUrl.trim() ? "external" : "internal");
-    payload.append("apply_url", formData.applyUrl);
-    payload.append("expires_at", formData.deadline);
-    formData.images.forEach((file) => payload.append("images[]", file));
-    if (formData.videoUrl.trim()) payload.append("videos", formData.videoUrl);
-    return payload;
+const buildJobPayload = () => {
+  const jobTypeMap = {
+    "Full Time": "full_time", "Part Time": "part_time",
+    "Contract": "contract", "Internship": "internship", "Trainee": "trainee","Placement": "placement",
   };
+  const workModeMap = { "Remote": "remote", "Hybrid": "hybrid", "Onsite": "onsite" };
+
+  const payload = new FormData();
+
+  // Title & category
+  if (formData.job_category_id === "other") {
+    payload.append("title", "none");
+    payload.append("other", formData.other);
+    payload.append("job_category", "other");
+  } else {
+    payload.append("title", formData.title);
+    payload.append("other", "");
+    payload.append("job_category", formData.job_category_id);
+  }
+
+  payload.append("description", formData.description);
+  payload.append("job_type", jobTypeMap[formData.jobType] || formData.jobType.toLowerCase());
+  payload.append("work_mode", workModeMap[formData.workMode] || formData.workMode.toLowerCase());
+  payload.append("additional_note", formData.note);
+  payload.append("experience_min", formData.expMin);
+  payload.append("experience_max", formData.expMax);
+  payload.append("salary_min", formData.minSalary);
+  payload.append("salary_max", formData.maxSalary);
+  payload.append("salary_type", formData.salary_type);
+  payload.append("salary_negotiable", formData.negotiable ? 1 : 0);
+  payload.append("address", formData.address);
+  payload.append("country", formData.country);
+  payload.append("city", formData.city);
+  payload.append("suburb", formData.suburb);
+  payload.append("latitude", formData.latitude);
+  payload.append("longitude", formData.longitude);
+  payload.append("skills", JSON.stringify(formData.skills));
+  payload.append("apply_type", formData.applyUrl.trim() ? "external" : "internal");
+  payload.append("apply_url", formData.applyUrl);
+  payload.append("expires_at", formData.deadline);
+  formData.images.forEach((file) => payload.append("images[]", file));
+  if (formData.videoUrl.trim()) payload.append("videos", formData.videoUrl);
+  return payload;
+};
+
 
   const postJob = async (token) => {
     const res = await fetch(`${BASE_URL}/post-a-job`, {
@@ -389,6 +474,14 @@ if (formData.durationType && !formData.duration)
 
       if (!loginData.status) {
         setApiMessage({ text: loginData.message || "Login failed.", success: false });
+
+        // For not verified error
+          if (loginData.type === "notVerified") {
+            setShowResend(true);
+          } else {
+            setShowResend(false);
+          }
+
         setLoading(false);
         return;
       }
@@ -412,6 +505,33 @@ if (formData.durationType && !formData.duration)
     setLoading(false);
   };
 
+   // ── Resend Verification Link ─────────────────────────────────────────────────────────
+
+  const handleResend = async () => {
+  setResendLoading(true);
+  setApiMessage({ text: "", success: null });
+
+  try {
+    const res = await fetch(`${BASE_URL}/email/resend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: employerData.email }),
+    });
+
+    const data = await res.json();
+
+    setApiMessage({
+      text: data.message || "Verification link sent",
+      success: data.status,
+    });
+
+  } catch {
+    setApiMessage({ text: "Failed to resend email", success: false });
+  } finally {
+    setResendLoading(false);
+  }
+};
+
   // ── Signup → Post Job ────────────────────────────────────────────────────────
 const handleSignup = async () => {
   const e = {};
@@ -423,33 +543,63 @@ const handleSignup = async () => {
   } else if (employerData.tax_avin_number.trim().length > 15) {
     e.tax_avin_number = "Tax / ABN number must be 15 characters or less.";
   }
+
+  if (employerData.profile_image) {
+  const file = employerData.profile_image;
+
+  if (!file.type.startsWith("image/")) {
+    setApiMessage({ text: "Only image files allowed", success: false });
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    setApiMessage({ text: "Max file size is 2MB", success: false });
+    return;
+  }
+}
+
   if (!employerData.email.trim()) e.email = "Email is required.";
   if (!employerData.phone.trim()) e.phone = "Phone is required.";
   if (!employerData.password.trim()) e.password = "Password is required.";
   if (!employerData.password_confirmation.trim()) e.password_confirmation = "Please confirm your password.";
   else if (employerData.password !== employerData.password_confirmation)
     e.password_confirmation = "Passwords do not match.";
-  if (Object.keys(e).length) { setAuthErrors(e); return; }
+
+  if (Object.keys(e).length) {
+    setAuthErrors(e);
+    return;
+  }
 
   setLoading(true);
   setApiMessage({ text: "", success: null });
 
   try {
+    // ✅ CREATE FORMDATA
+    const form = new FormData();
+
+    form.append("name", employerData.name);
+    form.append("role", employerData.role);
+    form.append("email", employerData.email);
+    form.append("password", employerData.password);
+    form.append("password_confirmation", employerData.password_confirmation);
+    form.append("designation", employerData.designation);
+    form.append("institution_name", employerData.institution_name);
+    form.append("phone", employerData.phone);
+    form.append("tax_avin_number", employerData.tax_avin_number);
+
+    // ✅ ADD LOGO HERE
+    if (employerData.profile_image) {
+      form.append("profile_image", employerData.profile_image);
+    }
+
     const regRes = await fetch(`${BASE_URL}/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        name: employerData.name,
-        role: employerData.role,
-        email: employerData.email,
-        password: employerData.password,
-        password_confirmation: employerData.password_confirmation,
-        designation: employerData.designation,
-        institution_name: employerData.institution_name,
-        phone: employerData.phone,
-        tax_avin_number: employerData.tax_avin_number,
-      }),
+      headers: {
+        Accept: "application/json",
+      },
+      body: form,
     });
+
     const regData = await regRes.json();
 
     if (!regData.status) {
@@ -458,15 +608,15 @@ const handleSignup = async () => {
       return;
     }
 
-    // ✅ Do NOT save to context/localStorage
+    // ✅ Continue same flow
     const jobData = await postJob(regData.token);
+
     setApiMessage({
       text: jobData.message || (jobData.status ? "Job posted successfully!" : "Failed to post job."),
       success: jobData.status,
     });
 
     if (jobData.status) {
-      // Clear all form state
       setFormData(INITIAL_FORM);
       setEmployerData(INITIAL_EMPLOYER);
       setStep(1);
@@ -477,10 +627,9 @@ const handleSignup = async () => {
       setShowPassword(false);
       setShowConfirmPassword(false);
 
-      // Redirect to /login after 2 seconds
       setTimeout(() => {
         setShowModal(false);
-        navigate("/login")
+        navigate("/login");
       }, 3000);
     }
   } catch {
@@ -489,6 +638,7 @@ const handleSignup = async () => {
 
   setLoading(false);
 };
+
 
 
   const handleSubmitClick = () => {
@@ -566,7 +716,7 @@ const handleOnlyNumbers = (field, value) => {
   handleChange(field, cleaned);
 };
 
-//  Phone validation (+ only at start, max 15 chars)
+//  Phone validation (+ only at start, max 12 chars)
 const handlePhoneChange = (value) => {
   let cleaned = value.replace(/[^0-9+]/g, "");
 
@@ -575,7 +725,7 @@ const handlePhoneChange = (value) => {
     cleaned = "+" + cleaned.replace(/\+/g, "");
   }
 
-  cleaned = cleaned.slice(0, 15);
+  cleaned = cleaned.slice(0, 12);
 
   handleEmployerChange("phone", cleaned);
 };
@@ -603,71 +753,162 @@ const handlePhoneChange = (value) => {
 
                 {/* ===== STEP 1 ===== */}
                 {step === 1 && (
-                  <div className="card p-4">
-                    <h5 className="mb-3">Basic Info</h5>
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <label>Job Title <span className="text-danger">*</span></label>
-                        <input
-                          className={`form-control ${errors.title ? "is-invalid" : ""}`}
-                          value={formData.title}
-                          onChange={(e) => handleChange("title", e.target.value)}
-                        />
-                        <Err field="title" />
-                      </div>
+  <div className="card p-4">
+    <h5 className="mb-3">Basic Info</h5>
+    <div className="row g-3">
 
-                      <div className="col-md-6">
-                        <label>Category <span className="text-danger">*</span></label>
-                        <select
-                          className={`form-select ${errors.category ? "is-invalid" : ""}`}
-                          value={formData.category}
-                          onChange={(e) => handleChange("category", e.target.value)}
-                        >
-                          <option value="">Select</option>
-                          {categories.map((c, i) => <option key={i}>{c}</option>)}
-                        </select>
-                        <Err field="category" />
-                      </div>
+      {/* Job Title with live search */}
+      <div className="col-12">
+        <label>Job Title / Category <span className="text-danger">*</span></label>
+        <div style={{ position: "relative" }}>
+          <input
+            className={`form-control ${errors.title ? "is-invalid" : ""}`}
+            placeholder="Type to search job category..."
+            value={categorySearch}
+            autoComplete="off"
+            onChange={(e) => {
+              const val = e.target.value;
+              setCategorySearch(val);
+              setSelectedCategoryLabel("");
+              setFormData(prev => ({ ...prev, job_category_id: "", title: "", other: "" }));
+              searchCategories(val);
+            }}
+            onFocus={() => {
+              if (categoryResults.length > 0) setShowCategoryDropdown(true);
+            }}
+            onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 150)}
+          />
 
-                      <div className="col-12">
-                        <label>Description <span className="text-danger">*</span></label>
-                        <ReactQuill
-                          theme="snow"
-                          value={formData.description}
-                          onChange={(val) => handleChange("description", val)}
-                          placeholder="Write job description here..."
-                        />
-                        <Err field="description" />
-                      </div>
+          {showCategoryDropdown && (
+            <ul style={{
+              position: "absolute", top: "100%", left: 0, right: 0,
+              background: "#fff", border: "1px solid #dee2e6",
+              borderRadius: "0 0 8px 8px", zIndex: 999,
+              maxHeight: "220px", overflowY: "auto",
+              listStyle: "none", margin: 0, padding: 0,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            }}>
+              {categoryLoading && (
+                <li style={{ padding: "10px 14px", color: "#888", fontSize: 14 }}>
+                  <i className="fas fa-spinner fa-spin me-2"></i>Searching...
+                </li>
+              )}
 
-                      <div className="col-12">
-                        <label>Skills</label>
-                        <input
-                          className="form-control"
-                          placeholder="Type & press Enter"
-                          value={skillInput}
-                          onChange={(e) => setSkillInput(e.target.value)}
-                          onKeyDown={addSkill}
-                        />
-                        <div className="mt-2">
-                          {formData.skills.map((s, i) => (
-                            <span key={i} className="badge me-2" onClick={() => removeSkill(i)} style={{ cursor: "pointer" }}>
-                              {s} ✕
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+              {!categoryLoading && categoryResults.map((item) => {
+                // Non-clickable "no results" info row
+                if (item.id === "__no_results__") {
+                  return (
+                    <li key="no_results" style={{
+                      padding: "10px 14px", fontSize: 13,
+                      color: "#ef5350", // red-ish to signal no match
+                      borderBottom: "1px solid #f3f4f6",
+                      cursor: "default",
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}>
+                      <i className="fas fa-info-circle"></i> {item.name}
+                    </li>
+                  );
+                }
 
-                      <div className="col-12">
-                        <label>Additional Note</label>
-                        <textarea className="form-control" value={formData.note} onChange={(e) => handleChange("note", e.target.value)} />
-                      </div>
-                    </div>
-                    <div className="mt-3 text-end">
-                      <button type="button" className="btn btn-primary" onClick={next}>Next</button>
-                    </div>
-                  </div>
-                )}
+                // "Other" option
+                if (item.id === "other") {
+                  return (
+                    <li
+                      key="other"
+                      onMouseDown={() => handleCategorySelect(item)}
+                      style={{
+                        padding: "10px 14px", cursor: "pointer", fontSize: 14,
+                        fontWeight: 600,
+                        color: "var(--secondary, #0d6efd)",
+                        background: "#fff",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f0f4ff"}
+                      onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                    >
+                       Other (enter manually)
+                    </li>
+                  );
+                }
+
+                // Normal category row
+                return (
+                  <li
+                    key={item.id}
+                    onMouseDown={() => handleCategorySelect(item)}
+                    style={{
+                      padding: "10px 14px", cursor: "pointer", fontSize: 14,
+                      borderBottom: "1px solid #f3f4f6",
+                      color: "#1f2937", background: "#fff",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f8f9fa"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                  >
+                    {item.name}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <Err field="title" />
+      </div>
+
+      {/* Custom title input shown only when "Other" is selected */}
+      {formData.job_category_id === "other" && (
+        <div className="col-12">
+          <label>Enter Your Job Title <span className="text-danger">*</span></label>
+          <input
+            className={`form-control ${errors.other ? "is-invalid" : ""}`}
+            placeholder="Enter your custom job title..."
+            value={formData.other}
+            onChange={(e) => {
+              handleChange("other", e.target.value);
+              if (errors.other) setErrors(prev => ({ ...prev, other: "" }));
+            }}
+          />
+          <Err field="other" />
+        </div>
+      )}
+
+      <div className="col-12">
+        <label>Description <span className="text-danger">*</span></label>
+        <ReactQuill
+          theme="snow"
+          value={formData.description}
+          onChange={(val) => handleChange("description", val)}
+          placeholder="Write job description here..."
+        />
+        <Err field="description" />
+      </div>
+
+      <div className="col-12">
+        <label>Skills</label>
+        <input
+          className="form-control"
+          placeholder="Type & press Enter"
+          value={skillInput}
+          onChange={(e) => setSkillInput(e.target.value)}
+          onKeyDown={addSkill}
+        />
+        <div className="mt-2">
+          {formData.skills.map((s, i) => (
+            <span key={i} className="badge me-2" onClick={() => removeSkill(i)} style={{ cursor: "pointer" }}>
+              {s} ✕
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="col-12">
+        <label>Additional Note</label>
+        <textarea className="form-control" value={formData.note} onChange={(e) => handleChange("note", e.target.value)} />
+      </div>
+    </div>
+    <div className="mt-3 text-end">
+      <button type="button" className="btn btn-primary" onClick={next}>Next</button>
+    </div>
+  </div>
+)}
 
                 {/* ===== STEP 2 ===== */}
                 {step === 2 && (
@@ -681,12 +922,13 @@ const handlePhoneChange = (value) => {
                           value={formData.jobType}
                           onChange={(e) => handleChange("jobType", e.target.value)}
                         >
-                          <option value="">Select</option>
+                          <option value="">Select</option>  
                           <option>Full Time</option>
                           <option>Part Time</option>
                           <option>Contract</option>
                           <option>Internship</option>
-                          <option>Freelance</option>
+                          <option>Trainee</option>
+                          <option>Placement</option>
                         </select>
                         <Err field="jobType" />
                       </div>
@@ -706,41 +948,6 @@ const handlePhoneChange = (value) => {
                         <Err field="workMode" />
                       </div>
 
-                      <div className="col-12">
-                        <label>Job Duration <span className="text-danger">*</span></label>
-
-                        <div className="mt-2">
-                            {["days", "months", "years"].map((type) => (
-                            <label key={type} className="me-3">
-                                <input
-                                type="radio"
-                                name="durationType"
-                                checked={formData.durationType === type}
-                                onChange={() => handleChange("durationType", type)}
-                                />{" "}
-                                <span className="text-capitalize">{type}</span>
-                            </label>
-                            ))}
-                        </div>
-
-                        {errors.durationType && (
-                          <div className="text-danger small mt-1">{errors.durationType}</div>
-                        )}
-
-                        {/* Show input ONLY when selected */}
-                        {formData.durationType && (
-                            <div className="col-md-6 mt-2">
-                            <input
-                                type="text"
-                                className={`form-control ${errors.duration ? "is-invalid" : ""}`}
-                                placeholder={`Enter duration in ${formData.durationType}`}
-                                value={formData.duration}
-                                onChange={(e) => handleTwoDigitNumber("duration", e.target.value)}
-                            />
-                            <Err field="duration" />
-                            </div>
-                        )}
-                        </div>
 
                       <div className="col-md-6">
                         <label>Experience Min</label>
@@ -819,8 +1026,30 @@ const handlePhoneChange = (value) => {
                   <div className="card p-4">
                     <h5>Salary & Media</h5>
                     <div className="row g-3">
-                      <div className="col-md-6">
-                        <label>Min Salary (per hour) <span className="text-danger">*</span></label>
+
+                      <div className="col-md-4">
+                      <label>Salary Type <span className="text-danger">*</span></label>
+                      <select
+                        className={`form-select ${errors.salary_type ? "is-invalid" : ""}`}
+                        value={formData.salary_type}
+                        onChange={(e) => {
+                          handleChange("salary_type", e.target.value);
+                          if (errors.salary_type) setErrors(prev => ({ ...prev, salary_type: "" }));
+                        }}
+                      >
+                        <option value="">Select type</option>
+                        <option value="hourly">Hourly</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="fortnightly">Fortnightly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="annually">Annually</option>
+                      </select>
+                      <Err field="salary_type" />
+                    </div>
+
+                      <div className="col-md-4">
+                        <label>Min Salary  <span className="text-danger">*</span></label>
                         <div className="input-group">
                           <span className="input-group-text">AU$</span>
                           <input
@@ -832,8 +1061,8 @@ const handlePhoneChange = (value) => {
                         <Err field="minSalary" />
                       </div>
 
-                      <div className="col-md-6">
-                        <label>Max Salary (per hour) <span className="text-danger">*</span></label>
+                      <div className="col-md-4">
+                        <label>Max Salary  <span className="text-danger">*</span></label>
                         <div className="input-group">
                           <span className="input-group-text">AU$</span>
                           <input
@@ -845,7 +1074,7 @@ const handlePhoneChange = (value) => {
                         <Err field="maxSalary" />
                       </div>
 
-                      <div className="col-12">
+                      {/* <div className="col-12">
                       <label className="d-flex align-items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -855,15 +1084,12 @@ const handlePhoneChange = (value) => {
                         />
                         Salary is negotiable
                       </label>
-                    </div>
+                    </div> */}
+
+                      
 
                       <div className="col-12">
-                        <label>Video URL (optional)</label>
-                        <input className="form-control" value={formData.videoUrl} onChange={(e) => handleChange("videoUrl", e.target.value)} />
-                      </div>
-
-                      <div className="col-12">
-                        <label>Upload Images (optional)</label>
+                        <label>Upload Cover Images (optional)</label>
                         <label htmlFor="upload_input" className="upload_wrapper mt-2">
                           <UploadCloud className="text_theme" size={60} />
                         </label>
@@ -883,23 +1109,21 @@ const handlePhoneChange = (value) => {
                       </div>
 
                       <div className="col-12">
+                        <label>Video URL (optional)</label>
+                        <input className="form-control" value={formData.videoUrl} onChange={(e) => handleChange("videoUrl", e.target.value)} />
+                      </div>
+
+                      <div className="col-12">
                         <label>
-                          External Apply URL{" "}
+                          External Application URL{" "}
                           <small className="text-muted">(leave empty for internal applications)</small>
                         </label>
                         <input className="form-control" value={formData.applyUrl} onChange={(e) => handleChange("applyUrl", e.target.value)} />
-                        {/* <small className="text-muted">
-                          apply_type → <strong>{formData.applyUrl.trim() ? "external" : "internal"}</strong>
-                        </small> */}
+                        
                       </div>
 
-                      {/* <div className="col-12">
-                        <label>Deadline</label>
-                        <input type="date" className="form-control" value={formData.deadline} onChange={(e) => handleChange("deadline", e.target.value)} />
-                      </div> */}
-
                       <div className="col-12">
-                        <label>Deadline</label>
+                        <label>Application Deadline</label>
                         <input
                           type="date"
                           className={`form-control ${errors.deadline ? "is-invalid" : ""}`}
@@ -989,6 +1213,25 @@ const handlePhoneChange = (value) => {
                       {authErrors.password && <div className="text-danger small mt-1">{authErrors.password}</div>}
                     </div>
 
+                    {showResend && (
+                      <div className="text-end my-2">
+                        <button
+                          type="button"
+                          className="text_blue"
+                          style={{
+                            textDecoration: "underline",
+                            border: "none",
+                            background: "none",
+                            cursor: "pointer"
+                          }}
+                          onClick={handleResend}
+                          disabled={resendLoading}
+                        >
+                          {resendLoading ? "Sending..." : "Resend Verification Link"}
+                        </button>
+                      </div>
+                    )}
+
                     <button className="btn-post w-100 mt-3" onClick={handleLogin} disabled={loading}>
                       {loading ? "Please wait..." : "Login & Submit Job"}
                     </button>
@@ -1003,7 +1246,7 @@ const handlePhoneChange = (value) => {
                         <label>Full Name <span className="text-danger">*</span></label>
                         <input
                           className={`form-control ${authErrors.name ? "is-invalid" : ""}`}
-                          placeholder="Enter your full name"
+                          placeholder="John Doe"
                           value={employerData.name}
                           onChange={(e) => handleEmployerChange("name", e.target.value)}
                         />
@@ -1014,7 +1257,7 @@ const handlePhoneChange = (value) => {
                        <label>Designation <span className="text-danger">*</span></label>
                     <input
                       className={`form-control ${authErrors.designation ? "is-invalid" : ""}`}
-                      placeholder="Your designation"
+                      placeholder="e.g. Director"
                       value={employerData.designation}
                       onChange={(e) => handleEmployerChange("designation", e.target.value)}
                     />
@@ -1025,7 +1268,7 @@ const handlePhoneChange = (value) => {
                         <label>Institution Name <span className="text-danger">*</span></label>
                         <input
                           className={`form-control ${authErrors.institution_name ? "is-invalid" : ""}`}
-                          placeholder="Institution/Company name"
+                          placeholder="e.g. ABC Institution"
                           value={employerData.institution_name}
                           onChange={(e) => handleEmployerChange("institution_name", e.target.value)}
                         />
@@ -1036,7 +1279,7 @@ const handlePhoneChange = (value) => {
                         <label>Tax / ABN Number <span className="text-danger">*</span></label>
                         <input
                           className={`form-control ${authErrors.tax_avin_number ? "is-invalid" : ""}`}
-                          placeholder="Tax or ABN number"
+                          placeholder="e.g. 12 345 678 901"
                           value={employerData.tax_avin_number}
                           maxLength={15}
                           onChange={(e) => handleEmployerChange("tax_avin_number", e.target.value)}
@@ -1044,12 +1287,66 @@ const handlePhoneChange = (value) => {
                         {authErrors.tax_avin_number && <div className="text-danger small mt-1">{authErrors.tax_avin_number}</div>}
                      </div>
 
+                     <div className="col-12">
+                      <label>Upload Logo</label>
+
+                      <label htmlFor="logo_upload" className="upload_wrapper mt-2">
+                        <UploadCloud size={50} className="text_theme" />
+                      </label>
+
+                      <input
+                        id="logo_upload"
+                        type="file"
+                        accept="image/*"
+                        className="d-none"
+                        onChange={(e) => handleLogoUpload(e.target.files[0])}
+                      />
+
+                      {logoPreview && (
+                        <div className="mt-2 position-relative" style={{ width: "80px" }}>
+                          <img
+                            src={logoPreview}
+                            alt="logo"
+                            style={{
+                              width: "80px",
+                              height: "80px",
+                              objectFit: "cover",
+                              borderRadius: "6px",
+                            }}
+                          />
+                          <span
+                            onClick={() => {
+                              handleEmployerChange("profile_image", null);
+                              setLogoPreview(null);
+                            }}
+                            style={{
+                              position: "absolute",
+                              top: "-6px",
+                              right: "-6px",
+                              background: "red",
+                              color: "#fff",
+                              borderRadius: "50%",
+                              width: "18px",
+                              height: "18px",
+                              fontSize: "12px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                            }}
+                          >
+                            ✕
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
                       <div className="col-md-6">
                         <label>Email <span className="text-danger">*</span></label>
                         <input
                           type="email"
                           className={`form-control ${authErrors.email ? "is-invalid" : ""}`}
-                          placeholder="Email address"
+                          placeholder="yourmail@123.com"
                           value={employerData.email}
                           onChange={(e) => handleEmployerChange("email", e.target.value)}
                         />
@@ -1060,7 +1357,7 @@ const handlePhoneChange = (value) => {
                         <label>Phone <span className="text-danger">*</span></label>
                         <input
                           className={`form-control ${authErrors.phone ? "is-invalid" : ""}`}
-                          placeholder="Phone number"
+                          placeholder="+61 123 123 123"
                           value={employerData.phone}
                         //   onChange={(e) => handleEmployerChange("phone", e.target.value)}
                            onChange={(e) => handlePhoneChange(e.target.value)}

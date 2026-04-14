@@ -43,17 +43,25 @@ const emptyExperience = () => ({
 });
 
 // ─── Year validation helper ───────────────────────────────────────────────────
+const CURRENT_YEAR = new Date().getFullYear();
+
 const validateYears = (start, end, isCurrentlyWorking = false) => {
   const s = parseInt(start, 10);
   const e = parseInt(end, 10);
 
   if (!start && !end) return null;
-  if (start && (isNaN(s) || s === 0)) return "Start year cannot be zero.";
-  if (!isCurrentlyWorking) {
-    if (end && (isNaN(e) || e === 0)) return "End year cannot be zero.";
-    if (start && end && e < s)
-      return "End year cannot be less than start year.";
+
+  if (start) {
+    if (isNaN(s) || s === 0) return "Start year cannot be zero.";
+    if (s < 1900 || s > CURRENT_YEAR) return `Start year must be between 1900 and ${CURRENT_YEAR}.`;
   }
+
+  if (!isCurrentlyWorking && end) {
+    if (isNaN(e) || e === 0) return "End year cannot be zero.";
+    if (e < 1900 || e > CURRENT_YEAR + 10) return `End year must be between 1900 and ${CURRENT_YEAR + 10}.`;
+    if (start && e < s) return "End year cannot be less than start year.";
+  }
+
   return null;
 };
 
@@ -67,6 +75,14 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
     onChange(row.id, field, val);
   };
 
+  // Validate on blur — clear invalid value
+  const handleYearBlur = (field) => (e) => {
+    const val = e.target.value;
+    if (val.length > 0 && val.length < 4) {
+      onChange(row.id, field, ""); // clear incomplete
+    }
+  };
+
   return (
     <div className="education_entry border rounded p-3 mb-3 position-relative">
       {showRemove && (
@@ -76,7 +92,7 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
           style={{ top: 10, right: 10 }}
           onClick={() => onRemove(row.id)}
         >
-          <i className="fa fa-trash"></i> 
+          <i className="fa fa-trash"></i>
         </button>
       )}
       <div className="row">
@@ -97,31 +113,31 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
             className="form-control"
             placeholder="i.e Harvard University"
             value={row.institution_name}
-            onChange={(e) =>
-              onChange(row.id, "institution_name", e.target.value)
-            }
+            onChange={(e) => onChange(row.id, "institution_name", e.target.value)}
           />
         </div>
         <div className="col-md-4 mb-4">
           <label className="mb-2">Start Year</label>
           <input
             type="text"
-            className="form-control"
+            className={`form-control ${yearError && row.start_year ? "is-invalid" : ""}`}
             placeholder="i.e 2020"
             maxLength={4}
             value={row.start_year}
             onChange={handleNumberOnly("start_year")}
+            onBlur={handleYearBlur("start_year")}
           />
         </div>
         <div className="col-md-4 mb-4">
           <label className="mb-2">End Year</label>
           <input
             type="text"
-            className="form-control"
+            className={`form-control ${yearError && row.end_year ? "is-invalid" : ""}`}
             placeholder="i.e 2023"
             maxLength={4}
             value={row.end_year}
             onChange={handleNumberOnly("end_year")}
+            onBlur={handleYearBlur("end_year")}
           />
         </div>
         <div className="col-md-4 mb-4">
@@ -144,12 +160,26 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
   );
 };
 
+
+
 // ─── ExperienceRow ────────────────────────────────────────────────────────────
 const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
   const dateError = (() => {
     if (!row.start_date) return null;
-    if (!row.currently_working && row.end_date && row.end_date < row.start_date)
-      return "End date cannot be before start date.";
+
+    // Guard: start_date must be a real date (not 0000-00-00)
+    const start = new Date(row.start_date);
+    if (isNaN(start.getTime()) || start.getFullYear() < 1900)
+      return "Please enter a valid start date.";
+
+    if (!row.currently_working && row.end_date) {
+      const end = new Date(row.end_date);
+      if (isNaN(end.getTime()) || end.getFullYear() < 1900)
+        return "Please enter a valid end date.";
+      if (end < start)
+        return "End date cannot be before start date.";
+    }
+
     return null;
   })();
 
@@ -162,7 +192,7 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
           style={{ top: 10, right: 10 }}
           onClick={() => onRemove(row.id)}
         >
-          <i className="fa fa-trash"></i> 
+          <i className="fa fa-trash"></i>
         </button>
       )}
       <div className="row align-items-end">
@@ -173,9 +203,7 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
             className="form-control"
             placeholder="i.e Harvard University"
             value={row.institution_name}
-            onChange={(e) =>
-              onChange(row.id, "institution_name", e.target.value)
-            }
+            onChange={(e) => onChange(row.id, "institution_name", e.target.value)}
           />
         </div>
         <div className="col-md-6 mb-4">
@@ -192,8 +220,10 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
           <label className="mb-2">Start Date</label>
           <input
             type="date"
-            className="form-control"
+            className={`form-control ${dateError && row.start_date ? "is-invalid" : ""}`}
             value={row.start_date}
+            min="1900-01-01"
+            max={new Date().toISOString().split("T")[0]}
             onChange={(e) => onChange(row.id, "start_date", e.target.value)}
           />
         </div>
@@ -201,9 +231,12 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
           <label className="mb-2">End Date</label>
           <input
             type="date"
-            className="form-control"
+            className={`form-control ${dateError && row.end_date && !row.currently_working ? "is-invalid" : ""}`}
             disabled={row.currently_working}
             value={row.currently_working ? "" : row.end_date}
+            min={row.start_date || "1900-01-01"}
+            max={new Date(new Date().setFullYear(new Date().getFullYear() + 10))
+              .toISOString().split("T")[0]}
             onChange={(e) => onChange(row.id, "end_date", e.target.value)}
           />
         </div>
@@ -214,14 +247,9 @@ const ExperienceRow = ({ row, onChange, onRemove, showRemove }) => {
               type="checkbox"
               id={`currently_working_${row.id}`}
               checked={row.currently_working}
-              onChange={(e) =>
-                onChange(row.id, "currently_working", e.target.checked)
-              }
+              onChange={(e) => onChange(row.id, "currently_working", e.target.checked)}
             />
-            <label
-              className="form-check-label"
-              htmlFor={`currently_working_${row.id}`}
-            >
+            <label className="form-check-label" htmlFor={`currently_working_${row.id}`}>
               Currently Working Here
             </label>
           </div>
@@ -453,26 +481,47 @@ const handleRemoveImage = () => {
     setExperienceRows((prev) => prev.filter((r) => r.id !== id));
 
   const validateAllYears = () => {
-    for (const row of educationRows) {
-      const err = validateYears(row.start_year, row.end_year);
-      if (err) {
-        toast.error(`Education: ${err}`);
+  // DOB check
+  if (dateOfBirth) {
+    const dob = new Date(dateOfBirth);
+    if (isNaN(dob.getTime()) || dob.getFullYear() < 1900 || dob > new Date()) {
+      toast.error("Please enter a valid date of birth.");
+      return false;
+    }
+  }
+
+  for (const row of educationRows) {
+    const err = validateYears(row.start_year, row.end_year);
+    if (err) {
+      toast.error(`Education: ${err}`);
+      return false;
+    }
+  }
+
+  for (const row of experienceRows) {
+    if (row.start_date) {
+      const start = new Date(row.start_date);
+      if (isNaN(start.getTime()) || start.getFullYear() < 1900) {
+        toast.error("Experience: Please enter a valid start date.");
         return false;
       }
     }
-    for (const row of experienceRows) {
-      if (
-        row.start_date &&
-        !row.currently_working &&
-        row.end_date &&
-        row.end_date < row.start_date
-      ) {
+    if (!row.currently_working && row.start_date && row.end_date) {
+      const start = new Date(row.start_date);
+      const end = new Date(row.end_date);
+      if (isNaN(end.getTime()) || end.getFullYear() < 1900) {
+        toast.error("Experience: Please enter a valid end date.");
+        return false;
+      }
+      if (end < start) {
         toast.error("Experience: End date cannot be before start date.");
         return false;
       }
     }
-    return true;
-  };
+  }
+
+  return true;
+};
 
   /*----- Fetch Profile -------*/
 
@@ -937,10 +986,25 @@ const handleCertificateDelete = async (certId, key) => {
                               <label className="mb-2">Date of Birth</label>
                               <input
                                 type="date"
-                                className="form-control"
+                                className={`form-control ${
+                                  dateOfBirth &&
+                                  (new Date(dateOfBirth).getFullYear() < 1900 || new Date(dateOfBirth) > new Date())
+                                    ? "is-invalid"
+                                    : ""
+                                }`}
                                 value={dateOfBirth}
+                                min="1900-01-01"
+                                max={new Date().toISOString().split("T")[0]}   // today's date dynamically
                                 onChange={(e) => setDateOfBirth(e.target.value)}
                               />
+                              {dateOfBirth &&
+                                new Date(dateOfBirth).getFullYear() < 1900 && (
+                                  <small className="text-danger">Year cannot be 0000 or before 1900.</small>
+                              )}
+                              {dateOfBirth &&
+                                new Date(dateOfBirth) > new Date() && (
+                                  <small className="text-danger">Date of birth cannot be in the future.</small>
+                              )}
                             </div>
 
 

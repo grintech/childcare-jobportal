@@ -51,7 +51,7 @@ const ForgotPassword = () => {
             {/* Header */}
             <div className="text-center mb-4">
               <Link to="/">
-                <img src="/images/logo.png" className="logo mb-4" alt="logo" />
+                <img src="/images/logo_new.png" className="logo mb-4" alt="logo" />
               </Link>
               <h1 className="mb-1">Forgot Password</h1>
               <small className="text-muted">

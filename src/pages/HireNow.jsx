@@ -34,7 +34,7 @@ const HireNow = () => {
         <div className="hire_now blue_nav">
         <Navbar />
 
-        {!user && <HireAuthPopup />}
+        {/* {!user && <HireAuthPopup />} */}
 
             <div className="job_hero">
                 <div className="container">
@@ -44,7 +44,7 @@ const HireNow = () => {
                         initial="hidden"
                         animate="visible"
                     >
-                        <h1 className='text-white'>Find the right people on EduCare</h1>
+                        <h1 className='text-white'>Find the right people on Early Learning Careers</h1>
                         <motion.p 
                           initial={{ x: -40, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}

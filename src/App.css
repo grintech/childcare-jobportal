@@ -493,7 +493,7 @@
   align-items: center;
   justify-content: center;
 }
-
+.job_logo_big svg{color: #000 ;}
 .similar_job_card {
   border: 1px solid #ddd;
   padding: 15px;
@@ -501,6 +501,7 @@
   background: #fff;
   transition: 0.3s;
 }
+
 .similar_job_card .badge{ background-color: #ebebeb !important;}
 
 .similar_job_card:hover {
@@ -657,6 +658,109 @@
     position: sticky;
     top: 110px;
 }
+
+
+
+
+.review_wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* CARD */
+.review_block {
+  border: 1px solid #e4e6eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+/* HEADER */
+.review_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: #f9fafb;
+  font-weight: 600;
+  font-size: 14px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+/* EDIT BUTTON */
+.edit_btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.edit_btn:hover {
+  color: #111;
+}
+
+/* BODY */
+.review_body {
+  padding: 12px 15px;
+}
+
+/* ROW STYLE */
+.review_row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.review_row:last-child {
+  border-bottom: none;
+}
+
+.review_row span {
+  color: #6b7280;
+}
+
+.review_row strong {
+  font-weight: 500;
+}
+
+/* COLUMN (for cover letter) */
+.review_row.column {
+  flex-direction: column;
+}
+
+.review_row.column p {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #333;
+}
+
+/* Q&A */
+.review_qa {
+  margin-bottom: 12px;
+}
+
+.review_qa:last-child {
+  margin-bottom: 0;
+}
+
+.question {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 3px;
+}
+
+.answer {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
 
 
 

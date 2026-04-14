@@ -27,6 +27,8 @@
 .text_blue{color: var(--primary);}
 .badge.bg-primary{background-color: var(--primary) !important;}
 
+.cursor-pointer{cursor: pointer;}
+
 a{cursor: pointer; text-decoration: none !important;}
 
 body{
@@ -1455,6 +1457,7 @@ html {
   font-size: 14px;
   transition: 0.2s;
 }
+.job_post_page .modal-body .form-control::placeholder{color: gray;}
 
 .postjob_container .form-select, .job_post_page .modal-body .form-select {
   border-radius: 10px;
@@ -1665,7 +1668,7 @@ html {
 .modal_content {
   position: relative;
   width: 100%;
-  max-width: 500px;
+  max-width: 550px;
   background: #fff;
   padding: 25px;
   border-radius: 12px;
@@ -2106,7 +2109,23 @@ textarea:focus {
  
 .btn_primary:hover { opacity: 0.88; }
 .btn_primary:active { transform: scale(0.97); }
+
+
+.review_comment {
+  color: gray;
+  font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* number of lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  }
  
+  .review_avatar_fallback{width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background-color: var(--light); border-radius: 50%;}
+ 
+  .review_avatar{width: 30px; height: 30px; border-radius: 50%;}
+
+
+
 /* ===== SIDEBAR ===== */
 .td-layout .sidebar{
   position: sticky;

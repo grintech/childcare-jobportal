@@ -15,14 +15,14 @@ const DashSidebar = () => {
       <div className="menu_items">
         <div className="dash_sidebar">
           <ul className="d-flex flex-row flex-lg-column gap-1 gap-sm-2 gap-md-3 gap-lg-4 m-0 p-0 ">
-            <Link
+            {/* <Link
               to="/my-account"
               className={currentPath === "/my-account" ? "active" : ""}
             >
               <li>
                 <i className="fa-solid fa-gauge me-1"></i> My Account
               </li>
-            </Link>
+            </Link> */}
 
             <Link
               to="/profile"

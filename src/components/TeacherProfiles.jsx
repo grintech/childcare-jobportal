@@ -180,6 +180,7 @@ const fetchTeachers = async (pageNum = 1, isNewSearch = false) => {
 
     const formattedData = res?.data?.map((item) => ({
       id: item.id,
+      slug: item.slug,
       name: item.name,
       email: item.email,
       jobRole:
@@ -190,7 +191,8 @@ const fetchTeachers = async (pageNum = 1, isNewSearch = false) => {
       location: item.teacher?.city || "",
       suburb: item.teacher?.suburb || "",
       image: item.teacher?.profile_image ? `${item.teacher.profile_image}` : null,
-      rating: 4.5,
+      // rating: 4.5,
+      rating: Number(item.average_rating) || 0,
       verified: item.teacher?.is_verified || false,
       badges: item.certificates?.map((c) => c.certificate_name) || [],
       phone: item.teacher?.phone || "",
@@ -268,15 +270,19 @@ useEffect(() => {
   }, [selectedTeacher]);
 
   const renderStars = (rating) => {
-    return [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        size={16}
-        fill={i < Math.floor(rating) ? "#ffc107" : "none"}
-        stroke="#ffc107"
-      />
-    ));
-  };
+  if (!rating || rating <= 0) return null;
+
+  const rounded = Math.round(rating * 10) / 10; //  fixes 3.299999 → 3.3
+
+  return [...Array(5)].map((_, i) => (
+    <Star
+      key={i}
+      size={16}
+      fill={i < Math.floor(rounded) ? "#ffc107" : "none"}
+      stroke="#ffc107"
+    />
+  ));
+};
 
   const formatName = (name) => {
     if (!name) return "";
@@ -384,7 +390,7 @@ useEffect(() => {
                 [...Array(3)].map((_, i) => <TeacherCardSkeleton key={i} />)
               ) : teachers.length > 0 ? (
                 teachers.map((teacher) => (
-                  <div key={teacher.slug} className="col-12 mb-4">
+                  <div key={teacher.id} className="col-12 mb-4">
                    <div className="job_card p-3">
                       <div className="d-flex profile_wrap gap-4">
 
@@ -429,9 +435,11 @@ useEffect(() => {
                             </span>
                           </div>
 
-                          <div className="d-flex gap-1 mb-2">
-                            {renderStars(teacher.rating)}
-                          </div>
+                          {teacher.rating > 0 && (
+                            <div className="d-flex gap-1 mb-2">
+                              {renderStars(teacher.rating)}
+                            </div>
+                          )}
 
                           <p className="description">{teacher.description}</p>
 

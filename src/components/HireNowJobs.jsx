@@ -96,6 +96,7 @@ const HireNowJobs = () => {
 };
 
 const renderStars = (rating) => {
+   if (!rating || rating === 0) return null; 
     return [...Array(5)].map((_, i) => (
       <Star
         key={i}
@@ -408,7 +409,7 @@ const handleSaveToggle = async (job) => {
                           </p>
 
                            <div className="d-flex gap-1 mb-2">
-                            {renderStars(4.5)}
+                             {renderStars(job.average_rating)}
                           </div>
 
                           <p className="location m-0">
