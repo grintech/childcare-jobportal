@@ -3,13 +3,16 @@ import { useNavigate } from "react-router-dom";
 const QuickSearch = () => {
   const navigate = useNavigate();
 
-  // Handlers
-  const handleRoleClick = (role) => {
-    navigate(`/?role=${encodeURIComponent(role)}`);
+ const handleRoleClick = (role) => {
+    navigate(`/?role=${encodeURIComponent(role)}`, {
+      state: { fromQuickSearch: true }
+    });
   };
 
   const handleLocationClick = (location) => {
-    navigate(`/?location=${encodeURIComponent(location)}`);
+    navigate(`/?location=${encodeURIComponent(location)}`, {
+      state: { fromQuickSearch: true }
+    });
   };
 
   return (

@@ -97,16 +97,16 @@ const handleSubmit = async (e) => {
 };
   return (
     <>
-      <div className="auth-wrapper wrapper-width">
+      <div className="auth-wrapper wrapper-width blue_nav">
         <Navbar />
 
         <div className="auth-page d-flex align-items-center justify-content-center">
           <div className="auth-card">
             {/* Header */}
             <div className="text-center mb-4">
-              <Link to="/">
+              {/* <Link to="/">
                 <img src="/images/logo_new.png" className="logo mb-4" alt="logo" />
-              </Link>
+              </Link> */}
               <h1 className="mb-1">Reset Password</h1>
               <small className="text-muted">
                 Create a new password for your account

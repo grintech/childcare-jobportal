@@ -45,7 +45,8 @@ const App = () => {
         <Route path="/jobs" element={<FindJobs />} />
         <Route path="/profiles" element={<HireNow />} />
         <Route path="/get-trained" element={<UpSkill />} />
-        <Route path="/job-post" element={<GuestOnlyRoute><PostJob /></GuestOnlyRoute>} />
+        {/* <Route path="/job-post" element={<GuestOnlyRoute><PostJob /></GuestOnlyRoute>} /> */}
+        <Route path="/job-post" element={<PostJob />} />
         <Route path="/job/:slug" element={<JobDetailPage />} />
         <Route path="/profile/:slug" element={<TeacherDetail />} />
         <Route path="/company/:slug" element={<EmployerDetail />} />

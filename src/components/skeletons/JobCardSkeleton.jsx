@@ -9,7 +9,7 @@ const JobCardSkeleton = () => {
 
           {/* Logo */}
           <div className="">
-            <Skeleton height={55} width={55} borderRadius={50} />
+            <Skeleton height={65} width={65} borderRadius={50} />
           </div>
 
           {/* Info */}
@@ -26,8 +26,9 @@ const JobCardSkeleton = () => {
               <Skeleton width="30%" />
             </p>
 
-            <p className="location">
-              <Skeleton width="50%" />
+           
+            <p className="">
+              <Skeleton width="70%" />
             </p>
           </div>
 

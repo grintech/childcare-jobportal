@@ -100,6 +100,7 @@ const Hero = () => {
           {/* RIGHT IMAGE */}
           <motion.div
             className="col-md-6 d-none d-md-flex justify-content-center"
+            // className="col-md-6 d-none  justify-content-center"
 
             //  IMAGE FROM RIGHT
             initial={{ x: 100, opacity: 0 }}
@@ -109,7 +110,7 @@ const Hero = () => {
             <div className="illustration-wrapper">
               <img 
                 ref={imageRef}
-                src="/images/hero13.png"
+                src="/images/hero15.png"
                 alt="Hero"
                 className="hero-img w-100"
               />

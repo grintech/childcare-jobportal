@@ -166,12 +166,15 @@ const AppliedJobs = () => {
                               {/* INFO */}
                               <div className="job_info">
                                 <h5><Link to={`/job/${job.slug}`}>{job.title}</Link></h5>
-                                <p className="company">{job.job_category}</p>
+                                <Link to={`/job/${job.institution_slug}`}>
+                                <p className="company">{job.institution_name}</p> 
+                                </Link>
 
-                                <p className="salary">
-                                  {currency}{job.salary_min} - {currency}{job.salary_max} (
-                                  {job.salary_type})
-                                </p>
+                               {job?.is_salary_hidden !== 1 && (
+                                  <p className="salary">
+                                    {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
+                                  </p>
+                                )}
 
                                 <p className="location">
                                   <MapPin size={14} /> {job.city}, {job.state}

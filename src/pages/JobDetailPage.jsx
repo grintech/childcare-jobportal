@@ -18,6 +18,7 @@ import {
   Clock,
   Phone,
   Mail,
+  Star,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../services/api";
@@ -49,7 +50,66 @@ const JobDetailPage = () => {
   const [similarLoading, setSimilarLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
 
-  // ✅ FETCH JOB
+  const renderStars = (rating) => {
+   if (!rating || rating === 0) return null; 
+    return [...Array(5)].map((_, i) => (
+      <Star
+        key={i}
+        size={16}
+        fill={i < Math.floor(rating) ? "#2EC4B6" : "none"}
+        stroke="#2EC4B6"
+        // fill={i < Math.floor(rating) ? "#ffc107" : "none"}
+        // stroke="#ffc107"
+      />
+    ));
+  };
+
+  const formatText = (value) => {
+    if (!value) return "";
+    return value
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const getYoutubeEmbedUrl = (url) => {
+    if (!url) return "";
+
+    const regExp =
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;
+    const match = url.match(regExp);
+
+    return match ? `https://www.youtube.com/embed/${match[1]}` : "";
+  };
+
+  const timeAgo = (dateString) => {
+  if (!dateString) return "";
+
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffMs = now - past;
+
+  const minutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMs / 3600000);
+  const days = Math.floor(diffMs / 86400000);
+  const months = Math.floor(days / 30);
+
+  if (minutes < 60) {
+    return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  }
+
+  if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  }
+
+  if (days < 30) {
+    return `${days} day${days !== 1 ? "s" : ""} ago`;
+  }
+
+  return `${months} month${months !== 1 ? "s" : ""} ago`;
+};
+
+
+  //  FETCH JOB
   const fetchJob = async () => {
     try {
       setLoading(true);
@@ -67,6 +127,12 @@ const JobDetailPage = () => {
 
   // ✅ APPLY
   const handleApplyClick = (job) => {
+
+    if (job.apply_type === "external" && job.apply_url) {
+      window.open(job.apply_url, "_blank");
+      return;
+    }
+
     // Not logged in
     if (!isAuthenticated) {
       toast.error("Please login to apply the job!");
@@ -243,28 +309,45 @@ const JobDetailPage = () => {
               </div>
             ) : (
               <>
+              {job.image.length > 0 && (
+               <div className="company_cover position-relative mb-4">
+                <img
+                  src={job.image}
+                  alt="cover"
+                  className="w-100 rounded-3"
+                  style={{ height: 220, objectFit: "cover" }}
+                />
+                <div
+                  className="position-absolute top-0 start-0 w-100 h-100 rounded-3"
+                  style={{ background: "linear-gradient(to right, rgba(0,0,0,0.3), rgba(0,0,0,0.1))" }}
+                />
+                {/* <div className="position-absolute top-50 start-0 translate-middle-y text-white px-4">
+                  <h3 className="fw-bold">Come build with us</h3>
+                </div> */}
+              </div>
+
+              )}
+              
                 <div className="row">
                   {/* LEFT SIDE */}
                   <div className="col-lg-8 mb-5 mb-lg-0">
                     <div className="job_detail_card shadow-sm mb-3">
-                      {Array.isArray(job.image) && job.image.length > 0 && (
+                      {/* {Array.isArray(job.image) && job.image.length > 0 && (
                         <div className="job_banner mb-3">
-                          {/* ✅ SINGLE IMAGE */}
                           {job.image.length === 1 && (
                             <img src={job.image[0]} alt="job-banner" />
                           )}
 
-                          {/* ✅ MULTIPLE IMAGES → SWIPER */}
                           {job.image.length > 1 && (
                             <Swiper
                               modules={[Pagination, Autoplay]}
                               pagination={{ clickable: true }}
                               autoplay={{
                                 delay: 2500, // 2.5 sec
-                                disableOnInteraction: false, // keep autoplay after swipe
-                                pauseOnMouseEnter: true, // pause on hover (desktop)
+                                disableOnInteraction: false, 
+                                pauseOnMouseEnter: true,
                               }}
-                              loop={true} // infinite loop
+                              loop={true} 
                               spaceBetween={10}
                               slidesPerView={1}
                               className="job_swiper"
@@ -277,11 +360,11 @@ const JobDetailPage = () => {
                             </Swiper>
                           )}
                         </div>
-                      )}
+                      )} */}
 
                       {/* HEADER */}
-                      <div className="d-flex align-items-center gap-3 mb-3">
-                        <Link to="/company" className="job_logo_big">
+                      <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+                        <Link to={`/company/${job.institution_slug}`} className="job_logo_big">
                           {job.profile_image ? (
                             <img src={job.profile_image} alt="" />
                           ) : (
@@ -292,11 +375,11 @@ const JobDetailPage = () => {
                         </Link>
 
                         <div>
-                          <Link to={`/company/${job.institution_slug}`}>
+                          {/* <Link to={`/company/${job.institution_slug}`}>
                             <p className="company_name mb-0">
                               {job.institution_name}
                             </p>
-                          </Link>
+                          </Link> */}
 
                           <h1 className="mb-1 fw-semibold job_title">{job.title}</h1>
 
@@ -308,64 +391,112 @@ const JobDetailPage = () => {
 
                       {/* META */}
                       <div className="job_meta mb-3">
-                        <p className="mb-3">
-                          <MapPin size={14} /> {job.address}
-                        </p>
-                        <p className="d-flex flex-wrap gap-2">
-                          <span className="badge bg-secondary text-capitalize">
-                            {job.job_type}
+                       
+                       <p className="mb-0">
+                        {job?.job_type && (
+                          <span>
+                            <b>Job Type:</b> {formatText(job.job_type)}
                           </span>
-                          <span className="badge bg-secondary text-capitalize">
-                            {job.work_mode}
-                          </span>
-                        </p>
-                      </div>
+                        )}
 
-                      {/* SALARY */}
-                      {/* <p className="posted small text_theme">
-                              <b>Salary:</b> ${job.salary_min} - ${job.salary_max} ({job.salary_type})
-                            </p> */}
-
-                      {/* BUTTONS */}
-                      <div className="d-flex gap-2 mt-3">
-                        {/* APPLY */}
-                        <button
-                          className="btn-post"
-                          onClick={() => handleApplyClick(job)}
-                          disabled={job.is_applied}
-                        >
-                          {job.is_applied ? (
-                            "APPLIED"
-                          ) : (
-                            <>
-                              APPLY <ArrowRight size={18} />
-                            </>
-                          )}
-                        </button>
-
-                        {/* SAVE */}
-                        <button className="btn2" onClick={handleSave}>
-                          {saving ? (
-                            <span className="d-inline-flex align-items-center gap-1">
-                              Saving... <Loader size={18} className="spin" />
+                        {job?.work_mode && (
+                          <>
+                            {job?.job_type && " , "}
+                            <span>
+                              <b>Work Mode:</b> {formatText(job.work_mode)}
                             </span>
-                          ) : (
-                            <>
-                              {job.is_saved ? "Saved" : "Save"}{" "}
-                              <HeartIcon
-                                size={18}
-                                fill={job.is_saved ? "red" : "none"}
-                                className="mb-1"
-                              />
-                            </>
-                          )}
-                        </button>
+                          </>
+                        )}
+
+                        {job?.experience_min && job?.experience_max && (
+                          <>
+                            {(job?.job_type || job?.work_mode) && " , "}
+                            <span>
+                              <b>Experience:</b> {job.experience_min} - {job.experience_max} yrs
+                            </span>
+                          </>
+                        )}
+
+                        {job?.is_salary_hidden != 1 && job?.salary_min && job?.salary_max && (
+                          <>
+                            {(job?.job_type || job?.work_mode || (job?.experience_min && job?.experience_max)) && " , "}
+                            <span>
+                              <b> {job?.salary_type && ` ${formatText(job.salary_type)}`} :</b> {currency}{job.salary_min} - {currency}{job.salary_max}
+                             
+                            </span>
+                          </>
+                        )}
+                      </p>
+
+                        {Array.isArray(job?.skills) && job.skills.length > 0 && (
+                        <div className="mt-3 ">
+                          <b>Skills:</b>{" "}
+                          {job.skills?.map((s, i) => (
+                            <span
+                              key={i}
+                              className="me-2 text-capitalize badge p-2 bg-light text-dark"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                        )}  
+
+                        {job?.created_at && (
+                          <p className="mb-0">
+                            <b>Posted:</b> <span className="small">{timeAgo(job.created_at)}</span>
+                          </p>
+                        )}
+
                       </div>
+
+
+                     
                     </div>
 
                     {/* DESCRIPTION */}
                     <div className="job_detail_card shadow-sm">
-                      <h5 className="fw-semibold">Job Description</h5>
+                      <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                      <h5 className="fw-semibold mb-0">Job Description</h5>
+                      <div className="d-flex">
+                         {/* BUTTONS */}
+                        <div className="d-flex gap-2">
+                          {/* APPLY */}
+                          <button
+                            className="btn-post"
+                            onClick={() => handleApplyClick(job)}
+                            disabled={job.is_applied}
+                          >
+                            {job.is_applied
+                              ? "APPLIED"
+                              : job.apply_type === "external"
+                              ? "Apply Now"
+                              : <>
+                              Easy Apply  <ArrowRight size={18} />
+                              </>}
+                          </button>
+
+                          {/* SAVE */}
+                          <button className="btn2" onClick={handleSave}>
+                            {saving ? (
+                              <span className="d-inline-flex align-items-center gap-1">
+                                Saving... <Loader size={18} className="spin" />
+                              </span>
+                            ) : (
+                              <>
+                                {job.is_saved ? "Saved" : "Save"}{" "}
+                                <HeartIcon
+                                  size={18}
+                                  fill={job.is_saved ? "red" : "none"}
+                                  className="mb-1"
+                                />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      </div>
 
                       <div className="job_description_wrapper">
                         <div
@@ -385,157 +516,70 @@ const JobDetailPage = () => {
                         )}
                       </div>
 
+                        
+                      
+                      {job.additional_note && (
                       <div className="mt-3 ">
-                        <b>Skills:</b>{" "}
-                        {job.skills?.map((s, i) => (
-                          <span
-                            key={i}
-                            className="me-2 text-capitalize badge p-2 bg-light text-dark"
-                          >
-                            {s}
-                          </span>
-                        ))}
+                        <b>Additional Note:</b> <span>{job.additional_note}</span>
                       </div>
-                      <div className="mt-3 ">
-                        <b>Role:</b> <span>{job.job_category}</span>
-                      </div>
+
+                      )}
                     </div>
                   </div>
 
                   {/* RIGHT SIDE */}
                   <div className="col-lg-4">
-                    {/* <div className="job_detail_card card_right shadow-sm">
-                      <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                        <BriefcaseBusinessIcon size={22} /> Job Info
-                      </h5>
-
-                      <p className="d-flex align-items-start gap-2">
-                        <Award size={16} className="mt-1 text_theme" />
-                        <span>
-                          <b>Experience:</b> {job.experience_min} -{" "}
-                          {job.experience_max} yrs
-                        </span>
-                      </p>
-
-                      <p className="d-flex align-items-start gap-2">
-                        <MapPin size={16} className="mt-1 text_theme" />
-                        <span>
-                          <b>Location:</b> {job.address}
-                        </span>
-                      </p>
-
-                      <p className="d-flex align-items-start gap-2">
-                        <MapPin size={16} className="mt-1 text_theme" />
-                        <span>
-                          <b>Salary:</b>{" "}
-                          <span className="text_theme">
-                            {currency}
-                            {job.salary_min} - {currency}
-                            {job.salary_max} ({job.salary_type})
-                          </span>
-                        </span>
-                      </p>
-
-                      <p className="d-flex align-items-start gap-2">
-                        <Clock size={16} className="mt-1 text_theme" />
-                        <span>
-                          <b>Duration:</b> {job.duration} {job.duration_type}
-                        </span>
-                      </p>
-
-                      <p className="d-flex align-items-start gap-2">
-                        <Phone size={16} className="mt-1 text_theme" />
-                        <span>
-                          <b>Phone:</b>{" "}
-                          <span className="">{maskPhone(job.phone_no)}</span>
-                        </span>
-                      </p>
-
-                      <p className="d-flex align-items-start gap-2">
-                        <Mail size={16} className="mt-1 text_theme" />
-                        <span>
-                          <b>Email:</b>{" "}
-                          <span className="">{maskEmail(job.user_email)}</span>
-                        </span>
-                      </p>
-                    </div> */}
-
+                   
                     <div className="card_right">
-                      <div className="sidebar_card ">
+                      <div className="sidebar_card mb-4">
 
                         {/* Header Strip */}
                         <div className="sidebar_featured">
-                          <p className="sidebar_featured_label">Job Details</p>
-                          <p className="sidebar_featured_name m-0 d-flex align-items-center gap-2">
+                          <p className="sidebar_featured_label">Client Details</p>
+                          <Link className="text_blue" to={`/company/${job.institution_slug}`}>
+                            <p className="sidebar_featured_name m-0 d-flex align-items-center gap-2">
                             <BriefcaseBusinessIcon size={16} />
-                            {job.title || "Job Info"}
+                            {job.institution_name || "Information"}
                           </p>
+                          </Link>
                         </div>
 
                         {/* Body */}
                         <div className="sidebar_body">
 
-                          <p className="contact_section_label">Job Information</p>
+                          {/* <p className="contact_section_label">Job Information</p> */}
 
                           <div className="contact_box">
-
-                            {/* Experience */}
+                            {job.suburb && job.country && (
                             <div className="contact_row">
                               <div className="contact_icon">
-                                <Award size={13} />
+                                <MapPin size={16} />
                               </div>
                               <div>
-                                <p className="contact_info_label">Experience</p>
+                                <p className="contact_info_label">Location</p>
                                 <p className="contact_info_value">
-                                  {job.experience_min} - {job.experience_max} yrs
+                                  {job.suburb} , {job.country}
                                 </p>
                               </div>
                             </div>
-
-
-                            {/* Salary */}
-                            <div className="contact_row">
-                              <div className="contact_icon">
-                                <Award size={13} />
-                              </div>
-                              <div>
-                                <p className="contact_info_label">Salary</p>
-                                <p className="contact_info_value text_theme">
-                                  {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Duration */}
-                            <div className="contact_row">
-                              <div className="contact_icon">
-                                <Clock size={13} />
-                              </div>
-                              <div>
-                                <p className="contact_info_label">Duration</p>
-                                <p className="contact_info_value">
-                                  {job.duration} {job.duration_type}
-                                </p>
-                              </div>
-                            </div>
+                            )}
 
                           </div>
 
-                          {/* Contact Section */}
-                          <p className="contact_section_label mt-3">Contact Info</p>
+                          {/* <p className="contact_section_label mt-3">Contact Info</p> */}
 
                           <div className="contact_box">
-
-                            {/* Phone */}
                             <div className="contact_row">
                               <div className="contact_icon">
                                 <Phone size={13} />
                               </div>
                               <div>
                                 <p className="contact_info_label">Phone</p>
-                                <p className="contact_info_value">
-                                  {maskPhone(job.phone_no)}
-                                </p>
+                               <p className="contact_info_value">
+                                {isAuthenticated && user?.role == "teacher"
+                                  ? job.phone_no
+                                  : maskPhone(job.phone_no)}
+                              </p>
                               </div>
                             </div>
 
@@ -546,16 +590,64 @@ const JobDetailPage = () => {
                               </div>
                               <div>
                                 <p className="contact_info_label">Email</p>
-                                <p className="contact_info_value">
-                                  {maskEmail(job.user_email)}
+                                 <p className="contact_info_value">
+                                  {isAuthenticated && user?.role == "teacher"
+                                    ? job.user_email
+                                    : maskEmail(job.user_email)}
                                 </p>
                               </div>
                             </div>
+
+                            {/* Rating */}
+                            {job?.average_rating > 0 && (
+                            <div className="contact_row mb-3">
+                              <div className="contact_icon">
+                                <Award size={16} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Rating</p>
+                                <div className="d-flex gap-1 align-items-center">
+                                  {renderStars(job.average_rating)}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Applications */}
+                          {job?.applications_count > 0 && (
+                            <div className="contact_row">
+                              <div className="contact_icon">
+                                <Briefcase size={16} />
+                              </div>
+                              <div>
+                                <p className="contact_info_label">Applications</p>
+                                <p className="contact_info_value ">
+                                  {job.applications_count} Applicant{job.applications_count > 1 ? "s" : ""}
+                                </p>
+                              </div>
+                            </div>
+                          )}
 
                           </div>
 
                         </div>
                       </div>
+
+                      {Array.isArray(job?.video) && job.video.length > 0 && (
+                      <div className="video_wrapper ">
+                        <iframe
+                          width="100%"
+                          height="250"
+                          src={getYoutubeEmbedUrl(job.video[0].video_url)}
+                          title="Job Video"
+                          style={{ border: "none" }}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="rounded-3"
+                        />
+                      </div>
+                    )}
+
 
                     </div>
 
@@ -579,8 +671,8 @@ const JobDetailPage = () => {
                                   src={item.profile_image}
                                   alt=""
                                   style={{
-                                    width: "55px",
-                                    height: "55px",
+                                    width: "65px",
+                                    height: "65px",
                                     objectFit: "cover",
                                     borderRadius: "50px",
                                   }}
@@ -609,19 +701,24 @@ const JobDetailPage = () => {
 
                               <Link to={`/job/${item.slug}`}>
                                 <p className="description small">
-                                  {stripHtml(item.description).slice(0, 120)}...
+                                  {stripHtml(item.short_description || item.description)}
                                 </p>
                               </Link>
 
+                           {item?.is_salary_hidden != 1 && (
                               <p className="salary">
-                                {currency}
-                                {item.salary_min} - {currency}
-                                {item.salary_max} ({item.salary_type})
+                                {currency}{item.salary_min} - {currency}{item.salary_max} ({item.salary_type})
                               </p>
+                            )}
+                            {item?.average_rating > 0 && (
+                              <div className="d-flex gap-1 mb-2">
+                                {renderStars(item.average_rating)}
+                              </div>
+                            )}
 
                               <p className="location m-0">
-                                <MapPin size={14} className="mb-1" />{" "}
-                                {item.address}, {item.state}
+                                <MapPin size={14} className="" />{" "}
+                                {item.suburb}, {item.country}
                               </p>
                             </div>
 
@@ -650,24 +747,31 @@ const JobDetailPage = () => {
                                 onClick={() => handleApplyClick(item)}
                                 disabled={item.is_applied}
                               >
-                                {item.is_applied ? "APPLIED" : "APPLY"}
+                               {item.is_applied
+                            ? "APPLIED"
+                            : item.apply_type === "external"
+                            ? "Apply Now"
+                            : "Easy Apply"}
                               </button>
                             </div>
                           </div>
 
                           {/* TAGS */}
-                          <div className="job_tags d-flex">
-                            <div className="d-flex gap-2">
-                              <Tag size={16} />
-                              <strong>Tagged as:</strong>
-                            </div>
+                          {item.skills?.length > 0 && (
+                            <div className="job_tags d-flex">
+                              <div className="d-flex gap-2">
+                                <Tag size={16} />
+                                <strong>Tagged as:</strong>
+                              </div>
 
-                            {item.skills?.map((tag, i) => (
-                              <span key={i} className="text-capitalize">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                              {item.skills.map((tag, i) => (
+                                <span key={i} className="text-capitalize">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                         </div>
                       </div>
                     ))

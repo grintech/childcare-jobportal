@@ -43,16 +43,16 @@ const ForgotPassword = () => {
 
   return (
     <>
-      <div className="auth-wrapper wrapper-width">
+      <div className="auth-wrapper wrapper-width blue_nav">
         <Navbar />
 
         <div className="auth-page d-flex align-items-center justify-content-center">
           <div className="auth-card">
             {/* Header */}
             <div className="text-center mb-4">
-              <Link to="/">
+              {/* <Link to="/">
                 <img src="/images/logo_new.png" className="logo mb-4" alt="logo" />
-              </Link>
+              </Link> */}
               <h1 className="mb-1">Forgot Password</h1>
               <small className="text-muted">
                 Enter your email and we’ll send you a reset link
@@ -66,7 +66,7 @@ const ForgotPassword = () => {
                 <label>
                   Email <span className="text-danger">*</span>
                 </label>
-                <div className="input-icon">
+                <div  className="input-icon">
                   <Mail size={18} />
                   <input
                     type="email"

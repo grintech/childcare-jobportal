@@ -49,6 +49,7 @@ const handleSubmit = async (e) => {
         token: res.token,
       });
 
+
       const role = res.user?.role;
 
       setTimeout(() => {
@@ -111,16 +112,16 @@ const handleSubmit = async (e) => {
 
   return (
     <>
-      <div className="auth-wrapper wrapper-width">
+      <div className="auth-wrapper wrapper-width blue_nav">
         <Navbar />
 
         <div className="auth-page d-flex align-items-center justify-content-center">
           <div className="auth-card">
             {/* Header */}
             <div className="text-center mb-4">
-              <Link to="/">
-                <img src="/images/logo_new.png" className="logo mb-4" alt="logo" />
-              </Link>
+              {/* <Link to="/">
+                <img src="/images/logo3.png" className="logo mb-4" alt="logo" />
+              </Link> */}
               <h1 className="mb-1">Login here!</h1>
             </div>
 

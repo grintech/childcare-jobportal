@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 // import { LoadScript, Autocomplete } from "@react-google-maps/api";
@@ -36,6 +36,7 @@ const INITIAL_FORM = {
   minSalary: "",
   maxSalary: "",
   negotiable: false,
+  is_salary_hidden: false,
   videoUrl: "",
   images: [],
   applyUrl: "",
@@ -90,7 +91,8 @@ const PasswordInput = ({ placeholder, value, onChange, showState, toggleShow, ha
 };
 
 const PostJob = () => {
-  const { login } = useAuth();
+  const { user, login } = useAuth();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
   const [skillInput, setSkillInput] = useState("");
@@ -104,7 +106,6 @@ const PostJob = () => {
   const [loading, setLoading] = useState(false);
 
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const navigate = useNavigate();
 
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -116,6 +117,12 @@ const PostJob = () => {
   const [showResend, setShowResend] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
+
+
+  const [applyType, setApplyType] = useState(""); // "internal" | "external"
+  const [questions, setQuestions] = useState([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionSelections, setQuestionSelections] = useState({}); 
 
   const { isLoaded } = useJsApiLoader({
    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -197,6 +204,40 @@ const handleCategorySelect = (item) => {
   if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
 };
 
+const fetchQuestions = async () => {
+  setQuestionsLoading(true);
+  try {
+    const res = await fetch(`${BASE_URL}/jobs-categories`, {
+      headers: { Accept: "application/json" },
+    });
+    const data = await res.json();
+    const qs = data?.questions || [];
+    setQuestions(qs);
+    // Only initialize NEW questions, preserve existing selections
+    setQuestionSelections(prev => {
+      const init = { ...prev };
+      qs.forEach(q => {
+        if (!init[q.id]) {
+          init[q.id] = { selected: false, required: false };
+        }
+      });
+      return init;
+    });
+  } catch {
+    setQuestions([]);
+  } finally {
+    setQuestionsLoading(false);
+  }
+};
+
+
+useEffect(() => {
+  //  Only redirect if user came directly (not via modal flow)
+  if (user && !showModal && !isRedirecting) {
+    navigate("/");
+  }
+}, [user]);
+
 
   // ── Google Places ────────────────────────────────────────────────────────────
 
@@ -274,15 +315,31 @@ const validateDeadline = (value) => {
 
   const selected = new Date(value);
   const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1); // ✅ tomorrow
+  tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
+
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 45);
+  maxDate.setHours(0, 0, 0, 0);
 
   const year = selected.getFullYear();
 
   if (year < 1000 || year > 9999) return "Please enter a valid 4-digit year.";
-  if (selected < tomorrow) return "Deadline must be a future date (from tomorrow onwards)."; // ✅ blocks today too
+  if (selected < tomorrow) return "Deadline must be a future date (from tomorrow onwards).";
+  if (selected > maxDate) return "Maximum application deadline is 45 days from today.";
 
   return "";
+};
+
+const validateUrl = (value) => {
+  if (!value.trim()) return "External application URL is required.";
+  try {
+    const url = new URL(value.trim());
+    if (!["http:", "https:"].includes(url.protocol)) return "URL must start with http:// or https://";
+    return "";
+  } catch {
+    return "Please enter a valid URL (e.g. https://yourcompany.com/apply).";
+  }
 };
 
   // ── Step Validation ──────────────────────────────────────────────────────────
@@ -345,11 +402,13 @@ const validateStep3 = () => {
 
 
 
-  const next = () => {
-    if (step === 1 && !validateStep1()) return;
-    if (step === 2 && !validateStep2()) return;
-    setStep(prev => prev + 1);
-  };
+const next = () => {
+  if (step === 1 && !validateStep1()) return;
+  if (step === 2 && !validateStep2()) return;
+  if (step === 3 && !validateStep3()) return;
+  // removed fetchQuestions() from here
+  setStep(prev => prev + 1);
+};
 
   const back = () => { setErrors({}); setStep(prev => prev - 1); };
 
@@ -363,11 +422,33 @@ const validateStep3 = () => {
 
   const removeSkill = (i) => handleChange("skills", formData.skills.filter((_, idx) => idx !== i));
 
-  const handleImages = (e) => {
-    const files = Array.from(e.target.files);
-    handleChange("images", [...formData.images, ...files].slice(0, 5));
-  };
+  // const handleImages = (e) => {
+  //   const files = Array.from(e.target.files);
+  //   handleChange("images", [...formData.images, ...files].slice(0, 5));
+  // };
 
+  const handleImages = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      if (img.width < 1200 || img.height < 400) {
+        setErrors(prev => ({
+          ...prev,
+          images: `Image must be at least 1200 × 400 pixels. Your image is ${img.width} × ${img.height}.`,
+        }));
+        URL.revokeObjectURL(img.src);
+        return;
+      }
+      setErrors(prev => ({ ...prev, images: "" }));
+      handleChange("images", [file]); // only one image
+    };
+
+    // Reset input so same file can be re-selected after error
+    e.target.value = "";
+  };
 
   const handleLogoUpload = (file) => {
   handleEmployerChange("profile_image", file);
@@ -378,7 +459,7 @@ const validateStep3 = () => {
 };
 
   // ── Reset all state & redirect ───────────────────────────────────────────────
-  const resetAndRedirect = (token) => {
+  const resetAndRedirect = (token, jobId) => {
     setFormData(INITIAL_FORM);
     setEmployerData(INITIAL_EMPLOYER);
     setStep(1);
@@ -394,12 +475,12 @@ const validateStep3 = () => {
     setIsRedirecting(true);
 
     setTimeout(() => {
-        window.location.href = `https://childcrm.grincloudhost.com/public/session-login?token=${token}`;
-    }, 1000);
+        window.location.href = `https://childcrm.grincloudhost.com/public/session-login?token=${token}&job_id=${jobId}`;
+      }, 1000);
   };
 
   // ── Build job FormData payload ───────────────────────────────────────────────
-const buildJobPayload = () => {
+const buildJobPayload = (currentApplyType, currentQuestionSelections) => {
   const jobTypeMap = {
     "Full Time": "full_time", "Part Time": "part_time",
     "Contract": "contract", "Internship": "internship", "Trainee": "trainee","Placement": "placement",
@@ -429,6 +510,7 @@ const buildJobPayload = () => {
   payload.append("salary_max", formData.maxSalary);
   payload.append("salary_type", formData.salary_type);
   payload.append("salary_negotiable", formData.negotiable ? 1 : 0);
+  payload.append("is_salary_hidden", formData.is_salary_hidden ? 1 : 0);
   payload.append("address", formData.address);
   payload.append("country", formData.country);
   payload.append("city", formData.city);
@@ -436,74 +518,106 @@ const buildJobPayload = () => {
   payload.append("latitude", formData.latitude);
   payload.append("longitude", formData.longitude);
   payload.append("skills", JSON.stringify(formData.skills));
-  payload.append("apply_type", formData.applyUrl.trim() ? "external" : "internal");
-  payload.append("apply_url", formData.applyUrl);
+  // payload.append("apply_type", formData.applyUrl.trim() ? "external" : "internal");
+  // payload.append("apply_url", formData.applyUrl);
+  payload.append("apply_type", currentApplyType);
+  if (applyType === "external") {
+    payload.append("apply_url", formData.applyUrl);
+  }
+
+  // Add question selections:
+  Object.entries(currentQuestionSelections).forEach(([id, val]) => {
+    if (val.selected) {
+      payload.append(`questions[${id}][selected]`, 1);
+      payload.append(`questions[${id}][required]`, val.required ? 1 : 0);
+    }
+  });
+
   payload.append("expires_at", formData.deadline);
   formData.images.forEach((file) => payload.append("images[]", file));
   if (formData.videoUrl.trim()) payload.append("videos", formData.videoUrl);
+
+  // ── Console log full payload for debugging ──
+  console.log("=== Job Payload ===");
+  for (let [key, value] of payload.entries()) {
+    console.log(`${key}:`, value);
+  }
+
   return payload;
+
 };
 
 
   const postJob = async (token) => {
-    const res = await fetch(`${BASE_URL}/post-a-job`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      body: buildJobPayload(),
-    });
-    return res.json();
-  };
+  const res = await fetch(`${BASE_URL}/post-a-job`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    body: buildJobPayload(applyType, questionSelections),
+  });
+  return res.json();
+};
 
   // ── Login → Post Job ─────────────────────────────────────────────────────────
-  const handleLogin = async () => {
-    const e = {};
-    if (!employerData.email.trim()) e.email = "Email is required.";
-    if (!employerData.password.trim()) e.password = "Password is required.";
-    if (Object.keys(e).length) { setAuthErrors(e); return; }
+const handleLogin = async () => {
+  const e = {};
+  if (!employerData.email.trim()) e.email = "Email is required.";
+  if (!employerData.password.trim()) e.password = "Password is required.";
+  if (Object.keys(e).length) { setAuthErrors(e); return; }
 
-    setLoading(true);
-    setApiMessage({ text: "", success: null });
+  setLoading(true);
+  setApiMessage({ text: "", success: null });
 
-    try {
-      const loginRes = await fetch(`${BASE_URL}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email: employerData.email, password: employerData.password, type: "principal" }),
-      });
-      const loginData = await loginRes.json();
+  try {
+    const loginRes = await fetch(`${BASE_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        email: employerData.email,
+        password: employerData.password,
+        type: "principal"
+      }),
+    });
 
-      if (!loginData.status) {
-        setApiMessage({ text: loginData.message || "Login failed.", success: false });
+    const loginData = await loginRes.json();
 
-        // For not verified error
-          if (loginData.type === "notVerified") {
-            setShowResend(true);
-          } else {
-            setShowResend(false);
-          }
+    if (!loginData.status) {
+      setApiMessage({ text: loginData.message || "Login failed.", success: false });
 
-        setLoading(false);
-        return;
+      if (loginData.type === "notVerified") {
+        setShowResend(true);
+      } else {
+        setShowResend(false);
       }
 
-      // Save to context + localStorage
-      login({ user: loginData.user, token: loginData.token });
-
-      const jobData = await postJob(loginData.token);
-      setApiMessage({
-        text: jobData.message || (jobData.status ? "Job posted successfully!" : "Failed to post job."),
-        success: jobData.status,
-      });
-
-      if (jobData.status) {
-        setTimeout(() => resetAndRedirect(loginData.token), 3000);
-      }
-    } catch {
-      setApiMessage({ text: "Network error. Please try again.", success: false });
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
-  };
+    // Save login
+    login({ user: loginData.user, token: loginData.token });
+
+    const jobData = await postJob(loginData.token);
+
+    // SINGLE source of truth
+    setApiMessage({
+      text: jobData.message || (jobData.status ? "Job posted successfully!" : "Failed to post job."),
+      success: jobData.status,
+    });
+
+    // Only handle redirect here
+    if (jobData.status) {
+      setTimeout(() => {
+        resetAndRedirect(loginData.token, jobData.data.id);
+      }, 3000);
+    }
+
+  } catch {
+    setApiMessage({ text: "Network error. Please try again.", success: false });
+  }
+
+  setLoading(false);
+};
+
 
    // ── Resend Verification Link ─────────────────────────────────────────────────────────
 
@@ -641,64 +755,54 @@ const handleSignup = async () => {
 
 
 
-  const handleSubmitClick = () => {
-    if (!validateStep3()) return;
+const handleSubmitClick = () => {
+  console.log("=== Form Data ===");
+  Object.entries(formData).forEach(([key, value]) => {
+    console.log(`${key}:`, value);
+  });
+  console.log("apply_type:", applyType);
+  console.log("questionSelections:", questionSelections);
 
-     // ✅ Console all form keys and values
-    console.log("=== Form Data ===");
-    Object.entries(formData).forEach(([key, value]) => {
-      console.log(`${key}:`, value);
-    });
+  // Also log the actual payload that will be sent
+  console.log("=== Payload Preview ===");
+  const previewPayload = buildJobPayload(applyType, questionSelections);
+  for (let [key, value] of previewPayload.entries()) {
+    console.log(`${key}:`, value);
+  }
 
-    setApiMessage({ text: "", success: null });
-    setAuthErrors({});
-    setShowModal(true);
-  };
+  if (!applyType) {
+    setErrors(prev => ({ ...prev, applyType: "Please select how candidates should apply." }));
+    return;
+  }
+ if (applyType === "external") {
+  const urlError = validateUrl(formData.applyUrl);
+  if (urlError) {
+    setErrors(prev => ({ ...prev, applyUrl: urlError }));
+    return;
+  }
+}
+  setErrors({});
+  setApiMessage({ text: "", success: null });
+  setAuthErrors({});
+  setShowModal(true);
+};
 
-  const switchTab = (mode) => {
-    setAuthMode(mode);
-    setApiMessage({ text: "", success: null });
-    setAuthErrors({});
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-  };
+
+
+const switchTab = (mode) => {
+  setAuthMode(mode);
+  setApiMessage({ text: "", success: null });
+  setAuthErrors({});
+  setShowPassword(false);
+  setShowConfirmPassword(false);
+};
 
   const Err = ({ field, map = errors }) =>
     map[field] ? <div className="text-danger small mt-1">{map[field]}</div> : null;
 
-  // ── Reusable password field with Eye toggle ──────────────────────────────────
+ 
 
-
-//   const PasswordInput = ({ placeholder, value, onChange, showState, toggleShow, hasError }) => (
-//     <div style={{ position: "relative" }}>
-//       <input
-//         type={showState ? "text" : "password"}
-//         className={`form-control ${hasError ? "is-invalid" : ""}`}
-//         placeholder={placeholder}
-//         value={value}
-//         onChange={onChange}
-//         style={{ paddingRight: "2.75rem" }}
-//       />
-//       <button
-//         type="button"
-//         onClick={toggleShow}
-//         tabIndex={-1}
-//         style={{
-//           position: "absolute", top: "50%", right: "10px",
-//           transform: "translateY(-50%)",
-//           background: "none", border: "none", cursor: "pointer",
-//           padding: 0, color: "#9ca3af", display: "flex", alignItems: "center",
-//           lineHeight: 1,
-//         }}
-//       >
-//         {showState ? <EyeOff size={17} /> : <Eye size={17} />}
-//       </button>
-//     </div>
-//   );
-
-
-
-  //  Only numbers + max 2 digits
+//  Only numbers + max 2 digits
 const handleTwoDigitNumber = (field, value) => {
   let cleaned = value.replace(/\D/g, "").slice(0, 2);
 
@@ -740,175 +844,175 @@ const handlePhoneChange = (value) => {
 
             {/* Stepper */}
             <div className="stepper mb-4">
-              {[1, 2, 3].map((s, index) => (
-                <div key={s} className="step_wrapper">
-                  <div className={`step_circle ${step >= s ? "active" : ""}`}>{s}</div>
-                  <div className="step_title">{["Basic", "Details", "Salary & Media"][index]}</div>
-                  {index !== 2 && <div className={`step_line ${step > s ? "active" : ""}`} />}
-                </div>
-              ))}
+             {[1, 2, 3, 4].map((s, index) => (
+            <div key={s} className="step_wrapper">
+              <div className={`step_circle ${step >= s ? "active" : ""}`}>{s}</div>
+              <div className="step_title">{["Basic", "Details", "Salary ", "Application Type"][index]}</div>
+              {index !== 3 && <div className={`step_line ${step > s ? "active" : ""}`} />}
+            </div>
+          ))}
             </div>
 
               <form>
 
                 {/* ===== STEP 1 ===== */}
                 {step === 1 && (
-  <div className="card p-4">
-    <h5 className="mb-3">Basic Info</h5>
-    <div className="row g-3">
+                  <div className="card p-4">
+                    <h5 className="mb-3">Basic Info</h5>
+                    <div className="row g-3">
 
-      {/* Job Title with live search */}
-      <div className="col-12">
-        <label>Job Title / Category <span className="text-danger">*</span></label>
-        <div style={{ position: "relative" }}>
-          <input
-            className={`form-control ${errors.title ? "is-invalid" : ""}`}
-            placeholder="Type to search job category..."
-            value={categorySearch}
-            autoComplete="off"
-            onChange={(e) => {
-              const val = e.target.value;
-              setCategorySearch(val);
-              setSelectedCategoryLabel("");
-              setFormData(prev => ({ ...prev, job_category_id: "", title: "", other: "" }));
-              searchCategories(val);
-            }}
-            onFocus={() => {
-              if (categoryResults.length > 0) setShowCategoryDropdown(true);
-            }}
-            onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 150)}
-          />
+                      {/* Job Title with live search */}
+                      <div className="col-12">
+                        <label>Job Title / Category <span className="text-danger">*</span></label>
+                        <div style={{ position: "relative" }}>
+                          <input
+                            className={`form-control ${errors.title ? "is-invalid" : ""}`}
+                            placeholder="Type to search job category..."
+                            value={categorySearch}
+                            autoComplete="off"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCategorySearch(val);
+                              setSelectedCategoryLabel("");
+                              setFormData(prev => ({ ...prev, job_category_id: "", title: "", other: "" }));
+                              searchCategories(val);
+                            }}
+                            onFocus={() => {
+                              if (categoryResults.length > 0) setShowCategoryDropdown(true);
+                            }}
+                            onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 150)}
+                          />
 
-          {showCategoryDropdown && (
-            <ul style={{
-              position: "absolute", top: "100%", left: 0, right: 0,
-              background: "#fff", border: "1px solid #dee2e6",
-              borderRadius: "0 0 8px 8px", zIndex: 999,
-              maxHeight: "220px", overflowY: "auto",
-              listStyle: "none", margin: 0, padding: 0,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            }}>
-              {categoryLoading && (
-                <li style={{ padding: "10px 14px", color: "#888", fontSize: 14 }}>
-                  <i className="fas fa-spinner fa-spin me-2"></i>Searching...
-                </li>
-              )}
+                          {showCategoryDropdown && (
+                            <ul style={{
+                              position: "absolute", top: "100%", left: 0, right: 0,
+                              background: "#fff", border: "1px solid #dee2e6",
+                              borderRadius: "0 0 8px 8px", zIndex: 999,
+                              maxHeight: "220px", overflowY: "auto",
+                              listStyle: "none", margin: 0, padding: 0,
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                            }}>
+                              {categoryLoading && (
+                                <li style={{ padding: "10px 14px", color: "#888", fontSize: 14 }}>
+                                  <i className="fas fa-spinner fa-spin me-2"></i>Searching...
+                                </li>
+                              )}
 
-              {!categoryLoading && categoryResults.map((item) => {
-                // Non-clickable "no results" info row
-                if (item.id === "__no_results__") {
-                  return (
-                    <li key="no_results" style={{
-                      padding: "10px 14px", fontSize: 13,
-                      color: "#ef5350", // red-ish to signal no match
-                      borderBottom: "1px solid #f3f4f6",
-                      cursor: "default",
-                      display: "flex", alignItems: "center", gap: 6,
-                    }}>
-                      <i className="fas fa-info-circle"></i> {item.name}
-                    </li>
-                  );
-                }
+                              {!categoryLoading && categoryResults.map((item) => {
+                                // Non-clickable "no results" info row
+                                if (item.id === "__no_results__") {
+                                  return (
+                                    <li key="no_results" style={{
+                                      padding: "10px 14px", fontSize: 13,
+                                      color: "#ef5350", // red-ish to signal no match
+                                      borderBottom: "1px solid #f3f4f6",
+                                      cursor: "default",
+                                      display: "flex", alignItems: "center", gap: 6,
+                                    }}>
+                                      <i className="fas fa-info-circle"></i> {item.name}
+                                    </li>
+                                  );
+                                }
 
-                // "Other" option
-                if (item.id === "other") {
-                  return (
-                    <li
-                      key="other"
-                      onMouseDown={() => handleCategorySelect(item)}
-                      style={{
-                        padding: "10px 14px", cursor: "pointer", fontSize: 14,
-                        fontWeight: 600,
-                        color: "var(--secondary, #0d6efd)",
-                        background: "#fff",
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#f0f4ff"}
-                      onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-                    >
-                       Other (enter manually)
-                    </li>
-                  );
-                }
+                                // "Other" option
+                                if (item.id === "other") {
+                                  return (
+                                    <li
+                                      key="other"
+                                      onMouseDown={() => handleCategorySelect(item)}
+                                      style={{
+                                        padding: "10px 14px", cursor: "pointer", fontSize: 14,
+                                        fontWeight: 600,
+                                        color: "var(--secondary, #0d6efd)",
+                                        background: "#fff",
+                                      }}
+                                      onMouseEnter={e => e.currentTarget.style.background = "#f0f4ff"}
+                                      onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                                    >
+                                      Other (enter manually)
+                                    </li>
+                                  );
+                                }
 
-                // Normal category row
-                return (
-                  <li
-                    key={item.id}
-                    onMouseDown={() => handleCategorySelect(item)}
-                    style={{
-                      padding: "10px 14px", cursor: "pointer", fontSize: 14,
-                      borderBottom: "1px solid #f3f4f6",
-                      color: "#1f2937", background: "#fff",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#f8f9fa"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-                  >
-                    {item.name}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-        <Err field="title" />
-      </div>
+                                // Normal category row
+                                return (
+                                  <li
+                                    key={item.id}
+                                    onMouseDown={() => handleCategorySelect(item)}
+                                    style={{
+                                      padding: "10px 14px", cursor: "pointer", fontSize: 14,
+                                      borderBottom: "1px solid #f3f4f6",
+                                      color: "#1f2937", background: "#fff",
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                                  >
+                                    {item.name}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                        <Err field="title" />
+                      </div>
 
-      {/* Custom title input shown only when "Other" is selected */}
-      {formData.job_category_id === "other" && (
-        <div className="col-12">
-          <label>Enter Your Job Title <span className="text-danger">*</span></label>
-          <input
-            className={`form-control ${errors.other ? "is-invalid" : ""}`}
-            placeholder="Enter your custom job title..."
-            value={formData.other}
-            onChange={(e) => {
-              handleChange("other", e.target.value);
-              if (errors.other) setErrors(prev => ({ ...prev, other: "" }));
-            }}
-          />
-          <Err field="other" />
-        </div>
-      )}
+                      {/* Custom title input shown only when "Other" is selected */}
+                      {formData.job_category_id === "other" && (
+                        <div className="col-12">
+                          <label>Enter Your Job Title <span className="text-danger">*</span></label>
+                          <input
+                            className={`form-control ${errors.other ? "is-invalid" : ""}`}
+                            placeholder="Enter your custom job title..."
+                            value={formData.other}
+                            onChange={(e) => {
+                              handleChange("other", e.target.value);
+                              if (errors.other) setErrors(prev => ({ ...prev, other: "" }));
+                            }}
+                          />
+                          <Err field="other" />
+                        </div>
+                      )}
 
-      <div className="col-12">
-        <label>Description <span className="text-danger">*</span></label>
-        <ReactQuill
-          theme="snow"
-          value={formData.description}
-          onChange={(val) => handleChange("description", val)}
-          placeholder="Write job description here..."
-        />
-        <Err field="description" />
-      </div>
+                      <div className="col-12">
+                        <label>Description <span className="text-danger">*</span></label>
+                        <ReactQuill
+                          theme="snow"
+                          value={formData.description}
+                          onChange={(val) => handleChange("description", val)}
+                          placeholder="Write job description here..."
+                        />
+                        <Err field="description" />
+                      </div>
 
-      <div className="col-12">
-        <label>Skills</label>
-        <input
-          className="form-control"
-          placeholder="Type & press Enter"
-          value={skillInput}
-          onChange={(e) => setSkillInput(e.target.value)}
-          onKeyDown={addSkill}
-        />
-        <div className="mt-2">
-          {formData.skills.map((s, i) => (
-            <span key={i} className="badge me-2" onClick={() => removeSkill(i)} style={{ cursor: "pointer" }}>
-              {s} ✕
-            </span>
-          ))}
-        </div>
-      </div>
+                      <div className="col-12">
+                        <label>Skills</label>
+                        <input
+                          className="form-control"
+                          placeholder="Type & press Enter"
+                          value={skillInput}
+                          onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyDown={addSkill}
+                        />
+                        <div className="mt-2">
+                          {formData.skills.map((s, i) => (
+                            <span key={i} className="badge me-2" onClick={() => removeSkill(i)} style={{ cursor: "pointer" }}>
+                              {s} ✕
+                            </span>
+                          ))}
+                        </div>
+                      </div>
 
-      <div className="col-12">
-        <label>Additional Note</label>
-        <textarea className="form-control" value={formData.note} onChange={(e) => handleChange("note", e.target.value)} />
-      </div>
-    </div>
-    <div className="mt-3 text-end">
-      <button type="button" className="btn btn-primary" onClick={next}>Next</button>
-    </div>
-  </div>
-)}
+                      <div className="col-12">
+                        <label>Additional Note</label>
+                        <textarea className="form-control" value={formData.note} onChange={(e) => handleChange("note", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="mt-3 text-end">
+                      <button type="button" className="btn btn-primary" onClick={next}>Next</button>
+                    </div>
+                  </div>
+                )}
 
                 {/* ===== STEP 2 ===== */}
                 {step === 2 && (
@@ -992,17 +1096,17 @@ const handlePhoneChange = (value) => {
                       </div>
 
                       {/* Replace City/State/Country fields with City/Suburb/Country: */}
-                      <div className="col-md-4">
+                      {/* <div className="col-md-4">
                         <label>City</label>
                         <input className="form-control" value={formData.city}
                           onChange={(e) => handleChange("city", e.target.value)} />
-                      </div>
-                      <div className="col-md-4">
+                      </div> */}
+                      <div className="col-md-6">
                         <label>Suburb</label>  {/* ← was State */}
                         <input className="form-control" value={formData.suburb}
                           onChange={(e) => handleChange("suburb", e.target.value)} />
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-md-6">
                         <label>Country</label>
                         <input className="form-control" value={formData.country}
                           onChange={(e) => handleChange("country", e.target.value)} />
@@ -1024,7 +1128,7 @@ const handlePhoneChange = (value) => {
                 {/* ===== STEP 3 ===== */}
                 {step === 3 && (
                   <div className="card p-4">
-                    <h5>Salary & Media</h5>
+                    <h5>Salary </h5>
                     <div className="row g-3">
 
                       <div className="col-md-4">
@@ -1074,6 +1178,17 @@ const handlePhoneChange = (value) => {
                         <Err field="maxSalary" />
                       </div>
 
+                      <div className="col-12">
+                        <label className="d-flex align-items-center gap-2" style={{ cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={formData.is_salary_hidden}
+                            onChange={(e) => handleChange("is_salary_hidden", e.target.checked)}
+                          />
+                          Do you want to hide salary?
+                        </label>
+                      </div>
+
                       {/* <div className="col-12">
                       <label className="d-flex align-items-center gap-2 cursor-pointer">
                         <input
@@ -1088,39 +1203,53 @@ const handlePhoneChange = (value) => {
 
                       
 
-                      <div className="col-12">
-                        <label>Upload Cover Images (optional)</label>
+                     <div className="col-12">
+                        <label>Upload Cover Image (optional)</label>
                         <label htmlFor="upload_input" className="upload_wrapper mt-2">
                           <UploadCloud className="text_theme" size={60} />
                         </label>
-                        <small className="text-muted">(Max 5 images)</small>
-                        <input id="upload_input" type="file" multiple className="form-control d-none" onChange={handleImages} />
+                        <small className="text-muted d-block">Min size: 1200 × 400 px</small>
+                        {errors.images && (
+                          <div className="text-danger small mt-1">{errors.images}</div>
+                        )}
+                        <input
+                          id="upload_input"
+                          type="file"
+                          accept="image/*"
+                          className="form-control d-none"
+                          onChange={handleImages}
+                        />
                         <div className="d-flex flex-wrap gap-2 mt-3">
                           {formData.images.map((file, i) => (
                             <div key={i} style={{ position: "relative" }}>
-                              <img src={URL.createObjectURL(file)} width="80" height="80" style={{ objectFit: "cover", borderRadius: "6px" }} alt="uploaded" />
+                              <img
+                                src={URL.createObjectURL(file)}
+                                width="210"
+                                height="70"
+                                style={{ objectFit: "cover", borderRadius: "6px" }}
+                                alt="cover"
+                              />
                               <span
-                                onClick={() => handleChange("images", formData.images.filter((_, idx) => idx !== i))}
-                                style={{ position: "absolute", top: "-6px", right: "-6px", background: "red", color: "#fff", borderRadius: "50%", width: "18px", height: "18px", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                                onClick={() => handleChange("images", [])}
+                                style={{
+                                  position: "absolute", top: "-6px", right: "-6px",
+                                  background: "red", color: "#fff", borderRadius: "50%",
+                                  width: "18px", height: "18px", fontSize: "12px",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  cursor: "pointer",
+                                }}
                               >✕</span>
                             </div>
                           ))}
                         </div>
                       </div>
 
+
                       <div className="col-12">
                         <label>Video URL (optional)</label>
                         <input className="form-control" value={formData.videoUrl} onChange={(e) => handleChange("videoUrl", e.target.value)} />
                       </div>
 
-                      <div className="col-12">
-                        <label>
-                          External Application URL{" "}
-                          <small className="text-muted">(leave empty for internal applications)</small>
-                        </label>
-                        <input className="form-control" value={formData.applyUrl} onChange={(e) => handleChange("applyUrl", e.target.value)} />
-                        
-                      </div>
 
                       <div className="col-12">
                         <label>Application Deadline</label>
@@ -1129,9 +1258,14 @@ const handlePhoneChange = (value) => {
                           className={`form-control ${errors.deadline ? "is-invalid" : ""}`}
                           value={formData.deadline}
                           min={(() => {
-                            const tomorrow = new Date();
-                            tomorrow.setDate(tomorrow.getDate() + 1); // ✅ tomorrow's date
-                            return tomorrow.toISOString().split("T")[0];
+                              const tomorrow = new Date();
+                              tomorrow.setDate(tomorrow.getDate() + 1);
+                              return tomorrow.toISOString().split("T")[0];
+                            })()}
+                          max={(() => {
+                            const maxDate = new Date();
+                            maxDate.setDate(maxDate.getDate() + 45);
+                            return maxDate.toISOString().split("T")[0];
                           })()}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1146,10 +1280,214 @@ const handlePhoneChange = (value) => {
                     </div>
                     <div className="mt-3 d-flex justify-content-between">
                       <button type="button" className="btn btn-light" onClick={back}>Back</button>
-                      <button type="button" className="btn btn-primary" onClick={handleSubmitClick}>Submit Job</button>
+                      <button type="button" className="btn btn-primary" onClick={next}>Next</button>
                     </div>
                   </div>
                 )}
+
+                {/* ===== STEP 4 ===== */}
+                {step === 4 && (
+                  <div className="card p-4">
+                    <h5 className="mb-3">Apply Type</h5>
+
+                    <div className="mb-4">
+                      <label className="fw-semibold mb-3 d-block">
+                        How should candidates apply? <span className="text-danger">*</span>
+                      </label>
+
+                      <div className="d-flex gap-4">
+                        {/* Easy Apply */}
+                        <label
+                          className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer", fontWeight: applyType === "internal" ? 600 : 400 }}
+                        >
+                          <input
+                            type="radio"
+                            name="applyType"
+                            value="internal"
+                            checked={applyType === "internal"}
+                            onChange={() => {
+                              setApplyType("internal");
+                              setErrors(prev => ({ ...prev, applyType: "", applyUrl: "" }));
+
+                              // CLEAR external field
+                              setFormData(prev => ({ ...prev, applyUrl: "" }));
+
+                              // Only fetch if questions not yet loaded
+                              if (questions.length === 0) fetchQuestions();
+                            }}
+                          />
+                          Easy Apply
+                        </label>
+
+                        {/* External Apply */}
+                        <label
+                          className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer", fontWeight: applyType === "external" ? 600 : 400 }}
+                        >
+                          <input
+                            type="radio"
+                            name="applyType"
+                            value="external"
+                            checked={applyType === "external"}
+                            onChange={() => {
+                              setApplyType("external");
+                              setErrors(prev => ({ ...prev, applyType: "" }));
+
+                              // CLEAR all Easy Apply selections
+                              setQuestionSelections(prev => {
+                                const reset = {};
+                                Object.keys(prev).forEach(id => {
+                                  reset[id] = { selected: false, required: false };
+                                });
+                                return reset;
+                              });
+                            }}
+                          />
+                          Apply
+                        </label>
+                      </div>
+
+                      {errors.applyType && (
+                        <div className="text-danger small mt-2">{errors.applyType}</div>
+                      )}
+                    </div>
+
+                    {/* Easy Apply: Show Questions */}
+                    {applyType === "internal" && (
+                      <div>
+                        <label className="fw-semibold mb-3 d-block">Screening Questions</label>
+                        {questionsLoading ? (
+                          <p className="text-muted">
+                            <i className="fas fa-spinner fa-spin me-2"></i>Loading questions...
+                          </p>
+                        ) : questions.length === 0 ? (
+                          <p className="text-muted">No questions available.</p>
+                        ) : (
+                          <div className="d-flex flex-column gap-3">
+                            {questions.map((q) => {
+                              const sel = questionSelections[q.id] || { selected: false, required: false };
+                              return (
+                                <div
+                                  key={q.id}
+                                  className="p-3"
+                                  style={{
+                                    border: `1px solid ${sel.selected ? "var(--secondary, #0d6efd)" : "#dee2e6"}`,
+                                    borderRadius: "8px",
+                                    background: sel.selected ? "#f0f4ff" : "#fff",
+                                    transition: "all 0.2s",
+                                  }}
+                                >
+                                  <div className="d-flex align-items-start gap-3">
+                                    {/* Select checkbox */}
+                                    <input
+                                      type="checkbox"
+                                      id={`q_sel_${q.id}`}
+                                      checked={sel.selected}
+                                      onChange={(e) => {
+                                        setQuestionSelections(prev => ({
+                                          ...prev,
+                                          [q.id]: {
+                                            ...prev[q.id],
+                                            selected: e.target.checked,
+                                            required: e.target.checked ? prev[q.id]?.required : false,
+                                          },
+                                        }));
+                                      }}
+                                      style={{ marginTop: "3px", cursor: "pointer", width: "16px", height: "16px" }}
+                                    />
+                                    <div className="flex-grow-1">
+                                      <label
+                                        htmlFor={`q_sel_${q.id}`}
+                                        style={{ cursor: "pointer", fontWeight: 500, marginBottom: "4px", display: "block" }}
+                                      >
+                                        {q.question}
+                                      </label>
+
+                                      {/* Ans type badge */}
+                                      <span
+                                        style={{
+                                          fontSize: "12px",
+                                          background: "#e9ecef",
+                                          color: "#495057",
+                                          padding: "2px 8px",
+                                          borderRadius: "12px",
+                                          display: "inline-block",
+                                        }}
+                                      >
+                                        Ans type:{" "}
+                                        <strong>
+                                          {Array.isArray(q.options)
+                                            ? q.options.join(" / ")
+                                            : q.type === "radio"
+                                            ? "Yes / No"
+                                            : q.type}
+                                        </strong>
+                                      </span>
+
+                                      {/* Required toggle — only show if selected */}
+                                      {sel.selected && (
+                                        <div className="mt-2">
+                                          <label
+                                            className="d-flex align-items-center gap-2"
+                                            style={{ cursor: "pointer", fontSize: "13px", color: "#374151" }}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={sel.required}
+                                              onChange={(e) => {
+                                                setQuestionSelections(prev => ({
+                                                  ...prev,
+                                                  [q.id]: { ...prev[q.id], required: e.target.checked },
+                                                }));
+                                              }}
+                                            />
+                                            Mark as required
+                                          </label>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* External Apply: URL input */}
+                    {applyType === "external" && (
+                      <div className="mt-2">
+                        <label className="fw-semibold mb-2 d-block">
+                          External Application URL <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          className={`form-control ${errors.applyUrl ? "is-invalid" : ""}`}
+                          placeholder="https://yourcompany.com/apply"
+                          value={formData.applyUrl}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            handleChange("applyUrl", val);
+                            setErrors(prev => ({ ...prev, applyUrl: val.trim() ? validateUrl(val) : "" }));
+                          }}
+                        />
+                        {errors.applyUrl && (
+                          <div className="text-danger small mt-1">{errors.applyUrl}</div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-4 d-flex justify-content-between">
+                      <button type="button" className="btn btn-light" onClick={back}>Back</button>
+                      <button type="button" className="btn btn-primary" onClick={handleSubmitClick}>
+                        Submit Job
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+
               </form>
           </div>
         </div>
@@ -1178,12 +1516,7 @@ const handlePhoneChange = (value) => {
                   </button>
                 </div>
 
-                {/* API Response Message */}
-                {apiMessage.text && (
-                  <div className={`alert ${apiMessage.success ? "alert-success" : "alert-danger"} py-2 mb-3`}>
-                    {apiMessage.text}
-                  </div>
-                )}
+               
 
                 {/* ── LOGIN FORM ── */}
                 {authMode === "login" && (
@@ -1232,9 +1565,9 @@ const handlePhoneChange = (value) => {
                       </div>
                     )}
 
-                    <button className="btn-post w-100 mt-3" onClick={handleLogin} disabled={loading}>
+                    {/* <button className="btn-post w-100 mt-3" onClick={handleLogin} disabled={loading}>
                       {loading ? "Please wait..." : "Login & Submit Job"}
-                    </button>
+                    </button> */}
                   </div>
                 )}
 
@@ -1288,7 +1621,7 @@ const handlePhoneChange = (value) => {
                      </div>
 
                      <div className="col-12">
-                      <label>Upload Logo</label>
+                      <label>Upload Company Logo</label>
 
                       <label htmlFor="logo_upload" className="upload_wrapper mt-2">
                         <UploadCloud size={50} className="text_theme" />
@@ -1392,12 +1725,40 @@ const handlePhoneChange = (value) => {
                       </div>
                     </div>
 
-                    <button className="btn-post w-100 mt-4" onClick={handleSignup} disabled={loading}>
+                    {/* <button className="btn-post w-100 mt-4" onClick={handleSignup} disabled={loading}>
                       {loading ? "Please wait..." : "Sign Up & Submit Job"}
-                    </button>
+                    </button> */}
                   </div>
                 )}
               </div>
+
+              <div className="modal-footer p-3">
+                 {/* API Response Message */}
+                {apiMessage.text && (
+                  <div className={`text-center fw-semibold ${apiMessage.success ? "text-success" : "text-danger"}  mb-2 w-100`}>
+                    {apiMessage.text}
+                  </div>
+                )}
+
+                {authMode === "login" ? (
+                  <button
+                    className="btn-post w-100"
+                    onClick={handleLogin}
+                    disabled={loading}
+                  >
+                    {loading ? "Please wait..." : "Login & Submit Job"}
+                  </button>
+                ) : (
+                  <button
+                    className="btn-post w-100"
+                    onClick={handleSignup}
+                    disabled={loading}
+                  >
+                    {loading ? "Please wait..." : "Sign Up & Submit Job"}
+                  </button>
+                )}
+              </div>
+
             </div>
           </div>
         )}
@@ -1407,12 +1768,13 @@ const handlePhoneChange = (value) => {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7);
             display: flex; align-items: center; justify-content: center;
-            z-index: 1000;
+            z-index: 10000;
           }
           .modal-container {
             background: white; border-radius: 12px;
-            width: 90%; max-width: 550px; max-height: 90vh;
-            overflow-y: auto; animation: slideIn 0.3s ease;
+            width: 90%; max-width: 550px; 
+             animation: slideIn 0.3s ease;
+             overflow:hidden;
           }
           @keyframes slideIn {
             from { transform: translateY(-50px); opacity: 0; }
@@ -1429,7 +1791,10 @@ const handlePhoneChange = (value) => {
             color: #6b7280; transition: color 0.2s;
           }
           .modal-close:hover { color: #1f2937; }
-          .modal-body { padding: 1rem 1.5rem 1.5rem; }
+          .modal-body { padding: 1rem 1.5rem 1.5rem; max-height: 80vh;
+            overflow-y: auto; }
+
+           .modal-footer { box-shadow: 0 -4px 10px rgba(0,0,0,0.05); }
           .auth-tabs {
             display: flex; gap: 1rem; margin-bottom: 1.5rem;
             border-bottom: 1px solid #e5e7eb;

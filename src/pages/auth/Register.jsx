@@ -174,7 +174,7 @@ const handleFileChange = (e) => {
 
   return (
     <>
-      <div className="auth-wrapper">
+      <div className="auth-wrapper blue_nav">
         <Navbar />
 
         <div className="auth-page d-flex align-items-center justify-content-center">

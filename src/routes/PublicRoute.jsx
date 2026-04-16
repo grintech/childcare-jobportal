@@ -10,6 +10,9 @@ const PublicRoute = ({ children }) => {
   if (isAuthenticated && user?.role === "teacher") {
     return <Navigate to="/profile" />;
   }
+  // if (isAuthenticated && user?.role === "principal") {
+  //   return <Navigate to="/" />;
+  // }
   
   return children;
 };

@@ -50,7 +50,7 @@ const Footer = () => {
           {/* Logo + Description */}
           <div className="col-lg-4 mb-4">
             <img
-              src="/images/logo_white.png"
+              src="/images/logo2.png"
               alt="Early Learning Careers"
               className="footer_logo mb-3"
             />

@@ -72,7 +72,7 @@ const scrollToSection = (id) => {
 
           {/* Logo */}
           <Link className="navbar-brand" to="/">
-            <img src="/images/logo_white_new.png" alt="" />
+           <img src={scrolled ? "/images/logo2.png" : "/images/logo1.png"} alt="" />
           </Link>
 
           {/* Mobile toggle */}

@@ -317,7 +317,7 @@ const EmployerDetail = () => {
 
   const tabs = [
     { key: "about",   label: "About",   icon: <Info size={15} /> },
-    { key: "jobs",    label: "Jobs",    icon: <Briefcase size={15} />, badge: publishedJobs.length },
+    { key: "jobs",    label: "Posted Jobs",    icon: <Briefcase size={15} />, badge: publishedJobs.length },
     { key: "reviews", label: "Reviews", icon: <MessageSquare size={15} />, badge: reviews.length },
   ];
 
@@ -514,18 +514,18 @@ const EmployerDetail = () => {
                           <p className="text-muted">No description available.</p>
                         )}
 
-                        <div className="row mt-3">
+                        {/* <div className="row mt-3">
                           {employer.institutionName && (
                             <div className="col-6 mb-2">
-                              <strong>Institution:</strong> {employer.institutionName}
+                              <strong>Institution:</strong> <span className="text-capitalize">{employer.institutionName}</span>
                             </div>
                           )}
                           {employer.designation && (
                             <div className="col-6 mb-2">
-                              <strong>Designation:</strong> {employer.designation}
+                              <strong>Designation:</strong> <span className="text-capitalize">{employer.designation}</span> 
                             </div>
                           )}
-                          {/* {employer.city && (
+                          {employer.city && (
                             <div className="col-6 mb-2">
                               <strong>Location:</strong> {employer.city}{employer.state ? `, ${employer.state}` : ""}
                             </div>
@@ -534,13 +534,13 @@ const EmployerDetail = () => {
                             <div className="col-6 mb-2">
                               <strong>Country:</strong> {employer.country}
                             </div>
-                          )} */}
-                          {/* {totalApplications > 0 && (
+                          )}
+                          {totalApplications > 0 && (
                             <div className="col-6 mb-2">
                               <strong>Total Applications:</strong> {totalApplications}
                             </div>
-                          )} */}
-                        </div>
+                          )}
+                        </div> */}
                       </div>
 
                       <div className="td-card p-4 mb-4 rounded-3">
@@ -582,15 +582,30 @@ const EmployerDetail = () => {
                         <div className="row">
                           {publishedJobs.map((job) => {
                             const skillsParsed = (() => {
-                              try { return JSON.parse(job.skills); } catch { return []; }
-                            })();
+                            if (!job.skills) return []; //  handle null / undefined
+
+                            try {
+                              const parsed = JSON.parse(job.skills);
+                              return Array.isArray(parsed) ? parsed : []; //  ensure array
+                            } catch {
+                              return [];
+                            }
+                          })();
 
                             return (
                               <div className="col-12 mb-4" key={job.id}>
                                 <div className="job_card">
                                   <div className="job_card_body list_view">
                                     <div className="job_logo">
-                                      <BriefcaseBusinessIcon />
+                                      {job?.user?.director_profile?.profile_image_url ? (
+                                        <img
+                                          src={job?.user?.director_profile?.profile_image_url}
+                                          alt={job.institution_name}
+                                          className="w-100 h-100 object-fit-cover rounded-circle"
+                                        />
+                                      ) : (
+                                        <BriefcaseBusinessIcon />
+                                      )}
                                     </div>
                                     <div className="job_info">
                                       <h5 className="text-capitalize">
@@ -604,15 +619,20 @@ const EmployerDetail = () => {
                                       </h5>
                                       <p className="company mb-2">{employer.institutionName}</p>
                                       <Link to={`/job/${job.slug}`}>
-                                        <p className="description small">{stripHtml(job.description)}</p>
+                                        <p className="description small">
+                                          {stripHtml(job.short_description || job.description)}
+                                        </p>
                                       </Link>
-                                      <p className="salary">
-                                        {currency}{job.salary_min} - {currency}{job.salary_max}
-                                        {" "}({job.salary_type})
-                                        {job.salary_negotiable && (
-                                          <span className="text-muted ms-1" style={{ fontSize: 12 }}>(Negotiable)</span>
+                                        {job?.is_salary_hidden != 1 && (
+                                          <p className="salary">
+                                            {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
+                                            {job.salary_negotiable && (
+                                              <span className="text-muted ms-1" style={{ fontSize: 12 }}>
+                                                (Negotiable)
+                                              </span>
+                                            )}
+                                          </p>
                                         )}
-                                      </p>
                                       <div className="d-flex gap-2 mb-2">
                                         <span
                                           className="badge bg-light text-dark text-capitalize"
@@ -641,7 +661,7 @@ const EmployerDetail = () => {
                                       </Link>
                                     </div> */}
                                   </div>
-                                  {skillsParsed.length > 0 && (
+                                  {Array.isArray(skillsParsed) && skillsParsed.length > 0 && (
                                     <div className="job_tags d-flex flex-wrap">
                                       <div className="d-flex gap-1">
                                         <Tag size={16} /><strong>Tagged as:</strong>
@@ -849,25 +869,25 @@ const EmployerDetail = () => {
                     <ul className="list-unstyled">
                       {employer.website && (
                         <li className="mb-2 d-flex align-items-center gap-2">
-                          <Globe size={16} className="text_theme" />
+                          <Globe size={16} className="text_blue" />
                           <a href={employer.website} className="text_blue" target="_blank" rel="noreferrer">{employer.website}</a>
                         </li>
                       )}
                       {employer.email && (
                         <li className="mb-2 d-flex align-items-center gap-2">
-                          <Mail size={16} className="text_theme" />
-                          {isAuthenticated ? employer.email : maskEmail(employer.email)}
+                          <Mail size={16} className="text_blue" />
+                          {isAuthenticated && user?.role == "teacher" ? employer.email : maskEmail(employer.email)}
                         </li>
                       )}
                       {employer.phone && (
                         <li className="mb-2 d-flex align-items-center gap-2">
-                          <Phone size={16} className="text_theme" />
-                          {isAuthenticated ? employer.phone : maskPhone(employer.phone)}
+                          <Phone size={16} className="text_blue" />
+                          {isAuthenticated && user?.role == "teacher" ? employer.phone : maskPhone(employer.phone)}
                         </li>
                       )}
                       {employer.suburb && (
                         <li className="mb-2 d-flex align-items-center gap-2">
-                          <MapPin size={16} className="text_theme" />
+                          <MapPin size={16} className="text_blue" />
                           {/* {[employer.suburb, employer.city, employer.state, employer.country].filter(Boolean).join(", ")} */}
                           {employer.suburb}
                         </li>

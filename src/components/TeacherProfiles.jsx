@@ -453,7 +453,7 @@ useEffect(() => {
 
                           <div className="d-flex gap-2 mt-3">
                           <button
-                            className="btn btn-blue btn-sm"
+                            className="btn btn-blue "
                             onClick={() => handleViewProfile(teacher)}
                           >
                             View Profile

@@ -86,21 +86,45 @@ const HireNowJobs = () => {
 
 }, [location.search]);
 
-useEffect(() => {
-  if (filterRef.current) {
-    const yOffset = -300; // adjust (navbar height)
-    const y =
-      filterRef.current.getBoundingClientRect().top +
-      window.pageYOffset +
-      yOffset;
+// When coming from quick search
 
-    window.scrollTo({ top: y, behavior: "smooth" });
-  }
+useEffect(() => {
+  if (!location.search) return;
+
+  const isQuickSearch = location.state?.fromQuickSearch;
+
+  const timer = setTimeout(() => {
+    if (filterRef.current) {
+      const yOffset = isQuickSearch ? -300 : -120;
+
+      const y =
+        filterRef.current.getBoundingClientRect().top +
+        window.pageYOffset +
+        yOffset;
+
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  }, 300);
+
+  return () => clearTimeout(timer);
 }, [location.search]);
+
+// useEffect(() => {
+//   if (location.state?.fromQuickSearch) {
+//     window.history.replaceState({}, document.title);
+//   }
+// }, [location.state]);
 
 
 
   const handleApplyClick = (job) => {
+
+    // External apply → redirect
+    if (job.apply_type === "external" && job.apply_url) {
+      window.open(job.apply_url, "_blank");
+      return;
+    }
+
     // Not logged in
     if (!isAuthenticated) {
       toast.error("Please login to apply the job!");
@@ -130,8 +154,10 @@ const renderStars = (rating) => {
       <Star
         key={i}
         size={16}
-        fill={i < Math.floor(rating) ? "#ffc107" : "none"}
-        stroke="#ffc107"
+        fill={i < Math.floor(rating) ? "#2EC4B6" : "none"}
+        stroke="#2EC4B6"
+        // fill={i < Math.floor(rating) ? "#ffc107" : "none"}
+        // stroke="#ffc107"
       />
     ));
   };
@@ -409,55 +435,60 @@ const handleSaveToggle = async (job) => {
                   <div className="col-12 mb-4" key={job.id}>
                     <div className="job_card">
                       <div className="job_card_body list_view">
+                        <Link to={`/job/${job.slug}`}>
                         <div className="job_logo">
-                          {job.image ? (
+                          {job.profile_image ? (
                             <img
-                              src={job.image}
+                              src={job.profile_image}
                               alt={job.title}
                               style={{
-                                width: "55px",
-                                height: "55px",
+                                width: "65px",
+                                height: "65px",
                                 objectFit: "cover",
                                 borderRadius: "50px",
                               }}
                             />
                           ) : (
-                            <BriefcaseBusinessIcon />
+                            <BriefcaseBusinessIcon className="text-dark" />
                           )}
                         </div>
-
-                        <div className="job_info">
+                        </Link>
                         
-                           <h5 className="text-capitalize">
-                             <Link to={`/job/${job.slug}`}>{job.title} </Link>
+                         {/* <Link to={`/job/${job.slug}`}> */}
+                          <Link to={`/job/${job.slug}`} className="job_info">
+                          
+                            <h5 className="text-capitalize">
+                              {job.title}
 
-                             {job?.profile_status === "approved" && (
-                                <span className="verified_badge ms-1">
-                                  <CheckCircle size={16} /> Verified
-                                </span>
-                              )}
-                            </h5>
-                        
-                          <Link to={`/company/${job.institution_slug}`} className="company mb-2"><p className="m-0">{job.institution_name}</p></Link>
-                          <Link to={`/job/${job.slug}`}>
+                              {job?.profile_status === "approved" && (
+                                  <span className="verified_badge ms-1">
+                                    <CheckCircle size={16} /> Verified
+                                  </span>
+                                )}
+                              </h5>
+                          
+                            <p className="company mb-2">{job.institution_name}</p>
+                          
                             <p className="description small">
-                              {stripHtml(job.description)}
+                              {stripHtml(job.short_description || job.description)}
+                            </p>
+
+                          {job?.is_salary_hidden != 1 && (
+                              <p className="salary">
+                                {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
+                              </p>
+                            )}
+
+                            <div className="d-flex gap-1 mb-2">
+                              {renderStars(job.average_rating)}
+                            </div>
+
+                            <p className="location m-0">
+                              <MapPin size={14} className="mb-1" /> {job.suburb} , {job.country}
                             </p>
                           </Link>
 
-                          <p className="salary">
-                            {currency}{job.salary_min} - {currency}{job.salary_max} (
-                            {job.salary_type})
-                          </p>
-
-                           <div className="d-flex gap-1 mb-2">
-                             {renderStars(job.average_rating)}
-                          </div>
-
-                          <p className="location m-0">
-                            <MapPin size={14} className="mb-1" /> {job.suburb} , {job.country}
-                          </p>
-                        </div>
+                         {/* </Link> */}
 
                         <div className="job_actions">
                           {/* <Heart size={29} className="wishlist" /> */}
@@ -479,25 +510,34 @@ const handleSaveToggle = async (job) => {
                         </div>
                         
                           <button
-                            className="apply_btn"
-                            onClick={() => handleApplyClick(job)}
-                            disabled={job.is_applied}
-                          >
-                            {job.is_applied ? "APPLIED" : "APPLY"}
-                          </button>
+                          className="apply_btn"
+                          onClick={() => handleApplyClick(job)}
+                          disabled={job.is_applied}
+                        >
+                          {job.is_applied
+                            ? "APPLIED"
+                            : job.apply_type === "external"
+                            ? "Apply Now"
+                            : "Easy Apply"}
+                        </button>
                         </div>
                       </div>
 
+                     {job.skills?.length > 0 && (
                       <div className="job_tags d-flex">
                         <div className="d-flex gap-2">
                           <Tag size={16} />
                           <strong>Tagged as:</strong>
                         </div>
 
-                        {job.skills?.map((tag, i) => (
-                          <span key={i} className="text-capitalize" >{tag}</span>
+                        {job.skills.map((tag, i) => (
+                          <span key={i} className="text-capitalize">
+                            {tag}
+                          </span>
                         ))}
                       </div>
+                    )}
+
                     </div>
                   </div>
                 ))

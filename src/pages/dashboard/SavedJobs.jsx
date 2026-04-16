@@ -111,7 +111,7 @@ const SavedJobs = () => {
                           <div className="job_card_body list_view">
 
                             {/* LOGO */}
-                            <div className="job_logo">
+                            <Link to={`/company/${job.institution_slug}`} className="job_logo">
                               {job.featured_image ? (
                                 <img
                                   src={job.featured_image}
@@ -124,9 +124,9 @@ const SavedJobs = () => {
                                   }}
                                 />
                               ) : (
-                                <BriefcaseBusinessIcon />
+                                <BriefcaseBusinessIcon className="text-dark" />
                               )}
-                            </div>
+                            </Link>
 
                             {/* INFO */}
                             <div className="job_info">
@@ -138,10 +138,11 @@ const SavedJobs = () => {
                               
                               </Link>
 
-                              <p className="salary">
-                                {currency}{job.salary_min} - {currency}{job.salary_max} (
-                                {job.salary_type})
-                              </p>
+                             {job?.is_salary_hidden != 1 && (
+                                <p className="salary">
+                                  {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
+                                </p>
+                              )}
 
                               <p className="location">
                                 <MapPin size={14} /> {job.city}, {job.state}
@@ -177,7 +178,11 @@ const SavedJobs = () => {
                                 }}
                                 disabled={job.is_applied}
                               >
-                                {job?.is_applied ? "APPLIED" : "APPLY"}
+                                {job.is_applied
+                                ? "APPLIED"
+                                : job.apply_type === "external"
+                                ? "Apply Now"
+                                : "Easy Apply"}
                               </button>
 
                             </div>
