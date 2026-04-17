@@ -30,17 +30,18 @@ import {
   Mail,
   Pencil,
 } from "lucide-react";
+import GallerySkeleton from "../components/skeletons/GallerySkeleton";
 
-const galleryImages = [
-  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600",
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600",
-  "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600",
-  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600",
-  "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600",
-  "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600",
-  "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600",
-  "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600",
-];
+// const galleryImages = [
+//   "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600",
+//   "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600",
+//   "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600",
+//   "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600",
+//   "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600",
+//   "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600",
+//   "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600",
+//   "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600",
+// ];
 
 
 const maskPhone = (phone, type = "full") => {
@@ -141,6 +142,11 @@ const EmployerDetail = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  const [coverImage, setCoverImage] = useState("");
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
+
   const reviewFormRef = useRef(null);
 
   // Only teachers can review employers (principals)
@@ -153,6 +159,7 @@ const EmployerDetail = () => {
   // ── Fetch employer ──
   const fetchEmployer = async () => {
     try {
+      setPageError(null);
       setLoading(true);
       const res = await api.get(`/employer/${slug}`);
       const d = res.data;
@@ -183,6 +190,15 @@ const EmployerDetail = () => {
         instagram: dp?.instagram_url || "",
       });
 
+      setCoverImage(dp?.cover_image_url || "");
+
+      setGalleryLoading(true);
+      const imgs = (dp?.gallery_images || [])
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((img) => img.image_url);
+      setGalleryImages(imgs);
+      setGalleryLoading(false);
+
       setJobs(u.jobs || []);
       setTotalApplications(d.total_applications || 0);
 
@@ -196,6 +212,10 @@ const EmployerDetail = () => {
       }
     } catch (err) {
       console.error(err);
+      const status = err?.response?.status;
+      if (status === 500) setPageError("500");
+      else if (status === 404) setPageError("404");
+      else setPageError("general");
       toast.error("Failed to load employer profile");
     } finally {
       setLoading(false);
@@ -370,24 +390,55 @@ const EmployerDetail = () => {
             </div>
           )}
 
+          {/* ── ERROR STATE ── */}
+            {!loading && pageError && (
+              <div className="d-flex flex-column justify-content-center align-items-center min_height text-center px-3">
+                <div style={{ fontSize: 72, fontWeight: 800, color: "#dee2e6", lineHeight: 1 }}>
+                  {pageError === "500" ? "500" : pageError === "404" ? "404" : "!"}
+                </div>
+                <h4 className="fw-bold mt-2">
+                  {pageError === "500"
+                    ? "Internal Server Error"
+                    : pageError === "404"
+                    ? "Profile Not Found"
+                    : "Something Went Wrong"}
+                </h4>
+                <p className="text-muted" style={{ maxWidth: 420, fontSize: 14 }}>
+                  {pageError === "500"
+                    ? "Something went wrong on our end. Please try again in a moment."
+                    : pageError === "404"
+                    ? "This employer profile doesn't exist or may have been removed."
+                    : "Unable to load this profile. Please check your connection and try again."}
+                </p>
+                <button
+                  className="btn btn-blue mt-2 d-flex align-items-center gap-2"
+                  onClick={() => { setPageError(null); fetchEmployer(); }}
+                >
+                  <Loader size={15} /> Try Again
+                </button>
+              </div>
+            )}
+
+
+
           {/* ── MAIN CONTENT ── */}
           {!loading && employer && (
             <>
               {/* ── COVER IMAGE ── */}
               <div className="company_cover position-relative mb-4">
-                <img
-                  src="/images/company_cover.png"
+               <img
+                  src={coverImage || "/images/company_cover.png"}
                   alt="cover"
                   className="w-100 rounded-3"
                   style={{ height: 220, objectFit: "cover" }}
                 />
                 <div
                   className="position-absolute top-0 start-0 w-100 h-100 rounded-3"
-                  style={{ background: "linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.1))" }}
+                  style={{ background: "linear-gradient(to right, rgba(0,0,0,0.3), rgba(0,0,0,0.1))" }}
                 />
-                <div className="position-absolute top-50 start-0 translate-middle-y text-white px-4">
+                {/* <div className="position-absolute top-50 start-0 translate-middle-y text-white px-4">
                   <h3 className="fw-bold">Come build with us</h3>
-                </div>
+                </div> */}
               </div>
 
               {/* ── COMPANY HEADER ── */}
@@ -543,26 +594,54 @@ const EmployerDetail = () => {
                         </div> */}
                       </div>
 
-                      <div className="td-card p-4 mb-4 rounded-3">
-                        <h5 className="fw-bold mb-3">Gallery</h5>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                          {galleryImages.map((img, i) => (
+                      {(galleryLoading || galleryImages.length > 0) && (
+                        <div className="td-card p-4 mb-4 rounded-3">
+                          <h5 className="fw-bold mb-3">Gallery</h5>
+
+                          {galleryLoading ? (
+                            <GallerySkeleton count={8} />
+                          ) : (
                             <div
-                              key={i}
-                              onClick={() => openLightbox(i)}
-                              style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: 8, cursor: "pointer" }}
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(4, 1fr)",
+                                gap: 8,
+                              }}
                             >
-                              <img
-                                src={img}
-                                alt={`Gallery ${i + 1}`}
-                                style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.25s" }}
-                                onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.07)")}
-                                onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                              />
+                              {galleryImages.map((img, i) => (
+                                <div
+                                  key={i}
+                                  onClick={() => openLightbox(i)}
+                                  style={{
+                                    aspectRatio: "1/1",
+                                    overflow: "hidden",
+                                    borderRadius: 8,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <img
+                                    src={img}
+                                    alt={`Gallery ${i + 1}`}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                      transition: "transform 0.25s",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform = "scale(1.07)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform = "scale(1)")
+                                    }
+                                  />
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
-                      </div>
+                      )}
+
                     </>
                   )}
 

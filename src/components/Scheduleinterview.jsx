@@ -95,7 +95,7 @@ const ScheduleInterview = ({ teacher, onClose }) => {
   const [meetingType, setMeetingType] = useState("online"); // default
   const [meetingLink, setMeetingLink] = useState("");
   const [location, setLocation] = useState("");
-  const [maxBudget, setMaxBudget] = useState("");
+  // const [maxBudget, setMaxBudget] = useState("");
   const [description, setDescription] = useState("");
   // console.log(teacher);
   const { user, isAuthenticated } = useAuth();
@@ -143,7 +143,7 @@ const ScheduleInterview = ({ teacher, onClose }) => {
     formData.append("teacher_id", teacher.id);
     formData.append("job_title", jobTitle);
     formData.append("job_id", teacher?.jobId || ""); 
-    formData.append("max_budget", maxBudget);
+    // formData.append("max_budget", maxBudget);
     formData.append("description", description);
     formData.append("interview_date", interviewDate);
     formData.append("start_time", startTime);
@@ -300,8 +300,8 @@ const ScheduleInterview = ({ teacher, onClose }) => {
                     </div>
                   )}
 
-                  {/* 💰 MAX BUDGET (INPUT GROUP) */}
-                  <div className="mb-3">
+                  {/*  MAX BUDGET (INPUT GROUP) */}
+                  {/* <div className="mb-3">
                     <label className="form-label">Max Budget</label>
                     <div className="input-group custom_budget">
                       <span className="input-group-text">AUD</span>
@@ -317,7 +317,7 @@ const ScheduleInterview = ({ teacher, onClose }) => {
                         }}
                       />
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* DESCRIPTION */}
                   <div>
@@ -490,6 +490,7 @@ const ScheduleInterview = ({ teacher, onClose }) => {
           display: flex;
           align-items: center;
           color: var(--secondary);
+          font-weight:600
         }
         .schedule_section_label {
           font-size: 0.875rem;

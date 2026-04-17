@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("user_resume");
 
     toast.success("Logged out successfully!");
 
@@ -93,6 +94,7 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("user_resume");
 
     //  Redirect after short delay (so toast is visible)
     setTimeout(() => {

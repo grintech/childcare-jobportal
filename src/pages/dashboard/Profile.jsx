@@ -560,9 +560,17 @@ const handleRemoveImage = () => {
 
         setProfileCompletion(p?.profile_completion || 0);
 
+        // if (p?.resume) {
+        //   setExistingResume(p.resume); 
+        // }
+
         if (p?.resume) {
-          setExistingResume(p.resume); // URL or file path
+          setExistingResume(p.resume);
+          localStorage.setItem("user_resume", p.resume); // ← keep in sync
+        } else {
+          localStorage.removeItem("user_resume"); // ← clear if no resume
         }
+
 
         // Education
         if (p?.educations?.length) {
@@ -704,6 +712,15 @@ const handleRemoveImage = () => {
 
       if (data?.status) {
         toast.success("Profile updated successfully!");
+
+         // ── Save resume link to localStorage ──
+          const resumeLink = data?.data?.resume || data?.data?.profile?.resume;
+          if (resumeLink) {
+            localStorage.setItem("user_resume", resumeLink);
+          } else if (removeResume) {
+            localStorage.removeItem("user_resume");
+          }
+  
         fetchProfile();
       } else {
         toast.error(data?.message || "Update failed");

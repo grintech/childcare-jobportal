@@ -8,11 +8,11 @@ const ApplyModal = ({ show, onClose, jobData }) => {
   const fileRef = useRef();
   const { user } = useAuth();
 
-  const [loading, setLoading] = useState(false); // ✅ loader
+  const [loading, setLoading] = useState(false); //  loader
 
   useEffect(() => {
     if (show) {
-      console.log("🧾 Job Data:", jobData);
+      console.log(" Job Data:", jobData);
     }
   }, [show, jobData]);
 
@@ -32,7 +32,8 @@ const ApplyModal = ({ show, onClose, jobData }) => {
   const [resume, setResume] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
 
-  const existingResume = user?.profile?.resume || "";
+  // const existingResume = user?.profile?.resume || "";
+  const existingResume = localStorage.getItem("user_resume") || user?.profile?.resume || "";
 
   // Autofill
   useEffect(() => {

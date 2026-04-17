@@ -27,6 +27,7 @@ api.interceptors.request.use(
 const handleLogout = (message) => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  localStorage.removeItem("user_resume");
 
   toast.error(message || "Your session has expired. Please login again.");
 

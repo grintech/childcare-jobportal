@@ -50,6 +50,8 @@ const JobDetailPage = () => {
   const [similarLoading, setSimilarLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
 
+  const [pageError, setPageError] = useState(null);
+
   const renderStars = (rating) => {
    if (!rating || rating === 0) return null; 
     return [...Array(5)].map((_, i) => (
@@ -112,6 +114,7 @@ const JobDetailPage = () => {
   //  FETCH JOB
   const fetchJob = async () => {
     try {
+      setPageError(null);
       setLoading(true);
       const res = await api.get(`/jobs/${slug}`);
 
@@ -119,6 +122,10 @@ const JobDetailPage = () => {
         setJob(res.data);
       }
     } catch (err) {
+      const status = err?.response?.status;
+      if (status === 500) setPageError("500");
+      else if (status === 404) setPageError("404");
+      else setPageError("general");
       toast.error("Failed to fetch job");
     } finally {
       setLoading(false);
@@ -302,12 +309,38 @@ const JobDetailPage = () => {
 
         <div className="top_padding">
           <div className="container my-4">
-            {loading || !job ? (
-              <div className="d-flex flex-column justify-content-center align-items-center min_height">
-                <Loader size={40} className="spin" />
-                <p>Please wait....</p>
-              </div>
-            ) : (
+            {loading ? (
+                <div className="d-flex flex-column justify-content-center align-items-center min_height">
+                  <Loader size={40} className="spin" />
+                  <p>Please wait....</p>
+                </div>
+              ) : pageError ? (
+                <div className="d-flex flex-column justify-content-center align-items-center min_height text-center px-3">
+                  <div style={{ fontSize: 72, fontWeight: 800, color: "#dee2e6", lineHeight: 1 }}>
+                    {pageError === "500" ? "500" : pageError === "404" ? "404" : "!"}
+                  </div>
+                  <h4 className="fw-bold mt-2">
+                    {pageError === "500"
+                      ? "Internal Server Error"
+                      : pageError === "404"
+                      ? "Job Not Found"
+                      : "Something Went Wrong"}
+                  </h4>
+                  <p className="text-muted" style={{ maxWidth: 420, fontSize: 14 }}>
+                    {pageError === "500"
+                      ? "Something went wrong on our end. Please try again in a moment."
+                      : pageError === "404"
+                      ? "This job listing doesn't exist or may have been removed."
+                      : "Unable to load this job. Please check your connection and try again."}
+                  </p>
+                  <button
+                    className="btn btn-blue mt-2 d-flex align-items-center gap-2"
+                    onClick={() => { setPageError(null); fetchJob(); }}
+                  >
+                    <Loader size={15} /> Try Again
+                  </button>
+                </div>
+              ) : !job ? null : (
               <>
               {job.image.length > 0 && (
                <div className="company_cover position-relative mb-4">
@@ -332,36 +365,7 @@ const JobDetailPage = () => {
                   {/* LEFT SIDE */}
                   <div className="col-lg-8 mb-5 mb-lg-0">
                     <div className="job_detail_card shadow-sm mb-3">
-                      {/* {Array.isArray(job.image) && job.image.length > 0 && (
-                        <div className="job_banner mb-3">
-                          {job.image.length === 1 && (
-                            <img src={job.image[0]} alt="job-banner" />
-                          )}
-
-                          {job.image.length > 1 && (
-                            <Swiper
-                              modules={[Pagination, Autoplay]}
-                              pagination={{ clickable: true }}
-                              autoplay={{
-                                delay: 2500, // 2.5 sec
-                                disableOnInteraction: false, 
-                                pauseOnMouseEnter: true,
-                              }}
-                              loop={true} 
-                              spaceBetween={10}
-                              slidesPerView={1}
-                              className="job_swiper"
-                            >
-                              {job.image.map((img, i) => (
-                                <SwiperSlide key={i}>
-                                  <img src={img} alt={`job-${i}`} />
-                                </SwiperSlide>
-                              ))}
-                            </Swiper>
-                          )}
-                        </div>
-                      )} */}
-
+                     
                       {/* HEADER */}
                       <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
                         <Link to={`/company/${job.institution_slug}`} className="job_logo_big">
@@ -375,17 +379,7 @@ const JobDetailPage = () => {
                         </Link>
 
                         <div>
-                          {/* <Link to={`/company/${job.institution_slug}`}>
-                            <p className="company_name mb-0">
-                              {job.institution_name}
-                            </p>
-                          </Link> */}
-
                           <h1 className="mb-1 fw-semibold job_title">{job.title}</h1>
-
-                          {/* <div className="small text-muted">
-                            ⭐ 4.4 • {job.applications_count} applicants
-                          </div> */}
                         </div>
                       </div>
 
