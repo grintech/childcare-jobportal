@@ -427,23 +427,23 @@ const ApplyModal = ({ show, onClose, jobData }) => {
 
                 <div className="review_body">
                   <div className="review_row">
-                    <span>Name</span>
+                    <span>Name :</span>
                     <strong>{form.name}</strong>
                   </div>
                   <div className="review_row">
-                    <span>Email</span>
+                    <span>Email :</span>
                     <strong>{form.email}</strong>
                   </div>
                   <div className="review_row">
-                    <span>Phone</span>
+                    <span>Phone :</span>
                     <strong>{form.phone}</strong>
                   </div>
                   <div className="review_row column">
-                    <span>Cover letter</span>
+                    <span>Cover letter :</span>
                     <p>{form.cover || "-"}</p>
                   </div>
                   <div className="review_row">
-                    <span>Resume</span>
+                    <span className="me-1">Resume :</span>
                     <strong>
                       {resumeOption === "existing"
                         ? existingResume

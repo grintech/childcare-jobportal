@@ -1,4 +1,4 @@
-import { BookMarked, BookMarkedIcon, BriefcaseBusinessIcon, ChevronDown, Heart, LogIn, LogOut, Menu, Plus, PlusCircle, User } from "lucide-react";
+import { BookMarked, BookMarkedIcon, BriefcaseBusinessIcon, CalendarDays, ChevronDown, Heart, LogIn, LogOut, Menu, Plus, PlusCircle, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -189,6 +189,15 @@ const scrollToSection = (id) => {
                           >
                           <BriefcaseBusinessIcon size={16} className="mb-1 me-1" /> Applied Jobs
                           </Link>
+
+                          <Link
+                            to="/interviews"
+                            className="dropdown-item"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            <CalendarDays size={16} className="mb-1 me-1" /> Scheduled Interviews
+                          </Link>
+
 
                           <button
                             className="dropdown-item text-danger"

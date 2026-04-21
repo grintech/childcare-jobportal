@@ -19,13 +19,13 @@ const ProfileSkeleton = () => {
             <div className="d-flex flex-wrap align-items-end gap-3">
               {/* Image Upload Box */}
               <div>
-                <Skeleton width={90} borderRadius={100} height={90} />
+                <Skeleton width={90} borderRadius={12} height={90} />
               </div>
               
               {/* Upload Text */}
               <div className="flex-grow-1 ">
-                <Skeleton width={170} height={45} borderRadius={50} className="mb-2" />
-                <Skeleton width={300} height={12} />
+                <Skeleton width={170} height={45} borderRadius={8} className="mb-2" />
+                <Skeleton width="80%" height={12} />
               </div>
             </div>
           </div>

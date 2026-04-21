@@ -17,7 +17,7 @@ import TeacherCardSkeleton from "./skeletons/TeacherCardSkeleton";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import ScheduleInterview from "./Scheduleinterview";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const maskPhone = (phone, type = "full") => {
   if (!phone) return "";
@@ -318,7 +318,7 @@ useEffect(() => {
                   <input
                     name="location"
                     className="form-control"
-                    placeholder="Search location..."
+                    placeholder="Enter location..."
                     value={filters.location}
                     onChange={handleChange}
                   />
@@ -329,7 +329,7 @@ useEffect(() => {
                   <input
                     name="suburb"
                     className="form-control"
-                    placeholder="Search suburb..."
+                    placeholder="Enter suburb..."
                     value={filters.suburb}
                     onChange={handleChange}
                   />
@@ -349,7 +349,7 @@ useEffect(() => {
                 <div className="col-12 col-md-8 col-xl-4">
                   <label className="form-label">Certificates</label>
 
-                  <div className="d-flex gap-3 flex-wrap filter_checks">
+                  <div className="d-flex column-gap-3 flex-wrap filter_checks">
                     {["WWCC", "CPR", "First Aid", "Police Check"].map((cert, i) => (
                       <div className="form-check" key={i}>
                         <input
@@ -393,7 +393,7 @@ useEffect(() => {
                   <div key={teacher.id} className="col-12 mb-4">
                    <div className="job_card p-3">
                       <div className="d-flex profile_wrap gap-4">
-
+                      <Link onClick={(e) => { e.preventDefault();  handleViewProfile(teacher) }} >
                         <div className="profile_logo">
                          {teacher.image ? (
                           <img
@@ -402,10 +402,11 @@ useEffect(() => {
                           />
                         ) : (
                           <div className="profile_logo_fallback">
-                            <User2 size={35} />
+                            <User2 className="text-dark" size={35} />
                           </div>
                         )}
-                        </div>
+                        </div>                      
+                      </Link>
 
                         <div className="flex-grow-1">
 
@@ -425,7 +426,7 @@ useEffect(() => {
                             <MapPin size={14} /> {teacher.suburb}, {teacher.location}
                           </p>
 
-                          <div className="d-flex gap-3 mb-2 contact_info">
+                          <div className="d-flex flex-wrap gap-3 mb-2 contact_info">
                             <span className="small text_theme">
                               <Phone size={14} className="mb-1 me-1" /> 
                               {canViewContact ? teacher.phone : maskPhone(teacher.phone)}
@@ -461,7 +462,7 @@ useEffect(() => {
 
                           {isAuthenticated && user?.role === "principal" && (
                             <button
-                              className="btn btn-sm btn-primary"
+                              className="btn btn-primary"
                               onClick={() => handleScheduleInterview(teacher)}
                             >
                               Schedule Interview

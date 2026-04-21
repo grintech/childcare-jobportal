@@ -277,7 +277,9 @@
 
 .blue_nav .navbar .nav-link{color: #fff !important;}
 .blue_nav .navbar .nav-link:hover{color: var(--primary) !important;}
+.blue_nav .navbar-collapse.show .nav-link:hover{color: var(--secondary) !important;}
 .blue_nav .navbar .nav-link.active{color: var(--primary) !important;}
+.blue_nav .navbar-collapse.show .nav-link.active{color: var(--secondary) !important;}
 .blue_nav .navbar-scrolled .nav-link:hover{color: var(--secondary) !important;}
 .blue_nav .navbar-scrolled .nav-link.active{color: var(--secondary) !important;}
 
@@ -609,6 +611,7 @@
 
 .job_description {
   line-height: 1.6;
+  word-break: break-all;
 }
 
 .job_description p {
@@ -618,7 +621,7 @@
 
 .job_description ul,
 .job_description ol {
-  padding-left: 18px;
+  /* padding-left: 18px; */
   margin-bottom: 10px;
 }
 
@@ -636,7 +639,7 @@
 }
 
 .job_description.clamped {
-  max-height: 130px; /* adjust if needed */
+  max-height: 125px; /* adjust if needed */
   overflow: hidden;
   position: relative;
 }
@@ -733,6 +736,7 @@
 
 .review_row strong {
   font-weight: 500;
+  word-break: break-all;
 }
 
 /* COLUMN (for cover letter) */
@@ -777,10 +781,22 @@
     position: relative;
     top: unset;
 }
+.job_hero { padding: 109px 0 135px 0;}
+.upskill_page .job_hero{
+  padding: 125px 0 45px 0 !important;
+}
 
 }
+
+@media (max-width:767px) {
+.job_hero { padding: 120px 0 150px 0;}
+
+}
+
+
 @media (max-width:575px) {
    .hire_now .filter_card{position: relative !important; top: unset !important;}
+   .role-card  h5{font-size: 18px;}
 }
 
 @media (max-width:475px) {
@@ -790,7 +806,16 @@
 
    .job_card_body.list_view .job_actions{
     margin-left: unset !important;
+    text-align: start; align-items: center;
    }
+   .job_hero { padding: 130px 0 170px 0;}
+   .profile_wrap{flex-direction: column;}
+   .role-card  h5{font-size: 17px;}
+}
+
+@media (max-width:425px) {
+   .role-wrapper{flex-direction: column;}
+
 }
 
 @media (max-width:350px) {

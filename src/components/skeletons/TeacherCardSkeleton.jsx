@@ -30,7 +30,7 @@ const TeacherCardSkeleton = () => {
             </div>
 
             {/* CONTACT */}
-            <div className="d-flex gap-2 mb-0">
+            <div className="d-flex flex-wrap gap-2 mb-0">
               <Skeleton width={120} height={10} />
               <Skeleton width={150} height={10} />
             </div>
@@ -49,7 +49,7 @@ const TeacherCardSkeleton = () => {
             </div>
 
             {/* BUTTON */}
-            <div className="d-flex gap-2 mt-1">
+            <div className="d-flex flex-wrap gap-2 mt-1">
               <Skeleton width={80} height={32} />
               <Skeleton width={80} height={32} />
               <Skeleton width={80} height={32} />

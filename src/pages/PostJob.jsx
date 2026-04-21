@@ -18,6 +18,7 @@ const INITIAL_FORM = {
   job_category_id: "", 
   other: "",         
   description: "",
+  short_description: "",
   skills: [],
   note: "",
   jobType: "",
@@ -430,23 +431,8 @@ const next = () => {
   const handleImages = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      if (img.width < 1200 || img.height < 400) {
-        setErrors(prev => ({
-          ...prev,
-          images: `Image must be at least 1200 × 400 pixels. Your image is ${img.width} × ${img.height}.`,
-        }));
-        URL.revokeObjectURL(img.src);
-        return;
-      }
-      setErrors(prev => ({ ...prev, images: "" }));
-      handleChange("images", [file]); // only one image
-    };
-
-    // Reset input so same file can be re-selected after error
+    setErrors(prev => ({ ...prev, images: "" }));
+    handleChange("images", [file]);
     e.target.value = "";
   };
 
@@ -485,7 +471,7 @@ const buildJobPayload = (currentApplyType, currentQuestionSelections) => {
     "Full Time": "full_time", "Part Time": "part_time",
     "Contract": "contract", "Internship": "internship", "Trainee": "trainee","Placement": "placement",
   };
-  const workModeMap = { "Remote": "remote", "Hybrid": "hybrid", "Onsite": "onsite" };
+  const workModeMap = { "Remote": "remote", "Onsite": "onsite" , "Hybrid": "hybrid" };
 
   const payload = new FormData();
 
@@ -501,6 +487,7 @@ const buildJobPayload = (currentApplyType, currentQuestionSelections) => {
   }
 
   payload.append("description", formData.description);
+  payload.append("short_description", formData.short_description);
   payload.append("job_type", jobTypeMap[formData.jobType] || formData.jobType.toLowerCase());
   payload.append("work_mode", workModeMap[formData.workMode] || formData.workMode.toLowerCase());
   payload.append("additional_note", formData.note);
@@ -986,6 +973,24 @@ const handlePhoneChange = (value) => {
                       </div>
 
                       <div className="col-12">
+                        <label>Short Description</label>
+                        <textarea
+                          className="form-control"
+                          rows={3}
+                          maxLength={150}
+                          placeholder="Brief summary of the job (shown in listings)..."
+                          value={formData.short_description}
+                          onChange={(e) => handleChange("short_description", e.target.value)}
+                        />
+                        <small className={`d-block mt-1 ${
+                          formData.short_description.length >= 150 ? "text-danger" : "text-muted"
+                        }`}>
+                          {formData.short_description.length} / 150 characters
+                        </small>
+                      </div>
+
+
+                      <div className="col-12">
                         <label>Skills</label>
                         <input
                           className="form-control"
@@ -1046,8 +1051,8 @@ const handlePhoneChange = (value) => {
                         >
                           <option value="">Select</option>
                           <option>Remote</option>
-                          <option>Hybrid</option>
                           <option>Onsite</option>
+                          <option>Hybrid</option>
                         </select>
                         <Err field="workMode" />
                       </div>
@@ -1208,7 +1213,7 @@ const handlePhoneChange = (value) => {
                         <label htmlFor="upload_input" className="upload_wrapper mt-2">
                           <UploadCloud className="text_theme" size={60} />
                         </label>
-                        <small className="text-muted d-block">Min size: 1200 × 400 px</small>
+                        <small className="text-muted d-block">Recommended size: 1200 × 400 px</small>
                         {errors.images && (
                           <div className="text-danger small mt-1">{errors.images}</div>
                         )}
@@ -1252,7 +1257,7 @@ const handlePhoneChange = (value) => {
 
 
                       <div className="col-12">
-                        <label>Application Deadline</label>
+                        <label>Application Deadline (Maximum application deadline is 45 days)</label>
                         <input
                           type="date"
                           className={`form-control ${errors.deadline ? "is-invalid" : ""}`}

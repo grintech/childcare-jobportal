@@ -22,6 +22,8 @@ import JobDetailPage from './pages/JobDetailPage'
 import TeacherDetail from './pages/TeacherDetail'
 import EmployerDetail from './pages/EmployerDetail'
 import GuestOnlyRoute from './routes/GuestOnlyRoute'
+import ScheduledInterviews from './pages/dashboard/Scheduledinterviews'
+import InterviewToastHandler from './components/InterviewToastHandler'
 
 const App = () => {
   return (
@@ -32,6 +34,7 @@ const App = () => {
         reverseOrder={false}
         containerClassName="custom_toaster"
       />
+      <InterviewToastHandler />
       <Routes>
         <Route path="/" element={<Homepage />} />
        
@@ -56,6 +59,7 @@ const App = () => {
         <Route path="/profile" element={ <ProtectedRoute ><Profile /></ProtectedRoute>} />
         <Route path="/saved-jobs" element={ <ProtectedRoute ><SavedJobs /></ProtectedRoute>} />
         <Route path="/applied-jobs" element={ <ProtectedRoute ><AppliedJobs /></ProtectedRoute>} />
+        <Route path="/interviews" element={ <ProtectedRoute ><ScheduledInterviews /></ProtectedRoute>} />
 
 
         <Route path="*" element={<NotFound />} />

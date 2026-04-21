@@ -187,7 +187,7 @@ const handleFileChange = (e) => {
                   <h1 className="mb-1">Join as a employer or jobseeker</h1>
                 </div>
 
-                <div className="d-flex gap-3 mb-4">
+                <div className=" role-wrapper d-flex gap-3 mb-4">
 
                   {/* Employer */}
                   <div

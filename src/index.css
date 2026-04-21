@@ -65,6 +65,7 @@ html {
 .navbar-toggler:focus{box-shadow: none !important; outline: 0 !important;}
 
 .navbar-collapse.show .btn-post{background-color: #fff !important; color: var(--primary) !important;}
+.navbar-collapse.show  .nav-link.active{color: var(--secondary) !important ;}
 
 .custom-navbar {
   padding: 14px 0;
@@ -507,7 +508,7 @@ html {
 }
 .job_card:hover{
   /* border-color: var(--secondary); transition: all .3s; */
-  box-shadow: rgba(0, 0, 0, 0.35) 0px -3px 10px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px -2px 10px;
 }
 .job_card:hover .job_tags{background-color: var(--secondary); color: var(--light); transition: all .3s;}
 .job_card:hover .job_tags span{color: var(--light) !important; transition: all .3s;}
@@ -562,6 +563,7 @@ html {
   font-size: 15px;
   text-transform: capitalize;
 }
+.job_home_info{font-size: 15px; color: #000;}
 
 .salary{
   font-weight: 600;
@@ -2392,6 +2394,9 @@ textarea:focus {
 .jobs_section, .top_institutes, .pricing_section , .testimonial-slider-section{
   padding: 60px 0;
 }
+.hero-section {
+ min-height: 80vh; height: 80vh;
+}
 
 .section_padding{padding: 60px 0;}
 .section_padding_top{padding: 60px 0 0 0;}
@@ -2437,7 +2442,7 @@ textarea:focus {
   .section_title { font-size: 22px !important;}
   .jobs_section, .top_institutes, .pricing_section , .testimonial-slider-section{  padding: 40px 0;}
 
-   .auth-page{
+  .auth-page{
     padding: 150px 10px 50px !important;
   }
   .hero-section{min-height: 90vh; height: 90vh;   
@@ -2448,12 +2453,16 @@ textarea:focus {
    .progress_bar{flex: unset;}
    .profile_meta{min-width: 100%;}
    .cert_item a{font-size: 11px;}
+   .custom-user-dropdown .dropdown-item {font-size: 15px;}
 }
 
 @media (max-width:425px) {
   .navbar .navbar-brand img{width: 160px;}
   .teacher_profiles .profile_wrap{flex-direction: column;}
   .employer_name{font-size: 18px; color: var(--secondary); text-transform: capitalize;}
+  .emp_tabs .btn {font-size: 14px;}
+  .emp_tabs .btn svg{display: none;}
+  .emp_tabs .btn .badge{font-size: 9px !important;}
 }
 
 @media (max-width:375px) {

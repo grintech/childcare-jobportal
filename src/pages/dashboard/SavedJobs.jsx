@@ -112,9 +112,9 @@ const SavedJobs = () => {
 
                             {/* LOGO */}
                             <Link to={`/company/${job.institution_slug}`} className="job_logo">
-                              {job.featured_image ? (
+                              {job.profile_image ? (
                                 <img
-                                  src={job.featured_image}
+                                  src={job.profile_image}
                                   alt=""
                                   style={{
                                     width: "55px",
@@ -145,7 +145,7 @@ const SavedJobs = () => {
                               )}
 
                               <p className="location">
-                                <MapPin size={14} /> {job.city}, {job.state}
+                                <MapPin size={14} /> {job?.suburb}, {job?.country}
                               </p>
                             </div>
 

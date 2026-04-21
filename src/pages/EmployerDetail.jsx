@@ -114,6 +114,14 @@ const formatBioToHtml = (text) => {
 };
 
 
+const formatText = (value) => {
+    if (!value) return "";
+    return value
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+
 const EmployerDetail = () => {
   const { slug } = useParams();
   const { user, isAuthenticated } = useAuth();
@@ -698,38 +706,53 @@ const EmployerDetail = () => {
                                       </h5>
                                       <p className="company mb-2">{employer.institutionName}</p>
                                       <Link to={`/job/${job.slug}`}>
-                                        <p className="description small">
+                                        <p className="description small mb-2">
                                           {stripHtml(job.short_description || job.description)}
                                         </p>
                                       </Link>
-                                        {job?.is_salary_hidden != 1 && (
-                                          <p className="salary">
-                                            {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
-                                            {job.salary_negotiable && (
-                                              <span className="text-muted ms-1" style={{ fontSize: 12 }}>
-                                                (Negotiable)
-                                              </span>
-                                            )}
-                                          </p>
+
+                                       <p className="mb-0 job_home_info">
+                                        {job?.job_type && (
+                                          <span>
+                                            <b>Job Type:</b> {formatText(job.job_type)}
+                                          </span>
                                         )}
-                                      <div className="d-flex gap-2 mb-2">
-                                        <span
-                                          className="badge bg-light text-dark text-capitalize"
-                                          style={{ fontSize: 11, border: "1px solid #dee2e6" }}
-                                        >
-                                          {job.job_type?.replace("_", " ")}
-                                        </span>
-                                        <span
-                                          className="badge bg-light text-dark text-capitalize"
-                                          style={{ fontSize: 11, border: "1px solid #dee2e6" }}
-                                        >
-                                          {job.work_mode}
-                                        </span>
-                                      </div>
-                                      <p className="location m-0">
-                                        <MapPin size={14} className="mb-1" />
-                                        {job.city}{job.state ? `, ${job.state}` : ""}, {job.country}
+
+                                        {job?.work_mode && (
+                                          <>
+                                            {job?.job_type && " , "}
+                                            <span>
+                                              <b>Work Mode:</b> {formatText(job.work_mode)}
+                                            </span>
+                                          </>
+                                        )}
+
+                                        {job?.experience_min && job?.experience_max && (
+                                          <>
+                                            {(job?.job_type || job?.work_mode) && " , "}
+                                             <span>
+                                              <b>Experience:</b> {job.experience_min} - {job.experience_max} yrs
+                                            </span>
+                                          </>
+                                        )}
+
+                                        {job?.is_salary_hidden != 1 && job?.salary_min && job?.salary_max && (
+                                          <>
+                                            {(job?.job_type || job?.work_mode || (job?.experience_min && job?.experience_max)) && " , "}
+                                            <span>
+                                              <b> {job?.salary_type && ` ${formatText(job.salary_type)}`} :</b> {currency}{job.salary_min} - {currency}{job.salary_max}
+                                            
+                                            </span>
+                                          </>
+                                        )}
                                       </p>
+
+                                        {job.suburb && job.country && (
+                                        <p className="location mt-2 mb-0">
+                                          <MapPin size={14} className="" />
+                                          {job.suburb}, {job.country}
+                                        </p>
+                                        )}
                                     </div>
                                     {/* <div className="job_actions">
                                       <div style={{ cursor: "pointer" }}>
@@ -745,9 +768,12 @@ const EmployerDetail = () => {
                                       <div className="d-flex gap-1">
                                         <Tag size={16} /><strong>Tagged as:</strong>
                                       </div>
-                                      {skillsParsed.slice(0,3).map((tag, i) => (
-                                        <span key={i} className="text-capitalize">{tag}</span>
-                                      ))}
+                                     {skillsParsed.slice(0, 3).map((tag, i) => (
+                                      <span key={i} className="text-capitalize">
+                                        {tag}
+                                        {i !== Math.min(skillsParsed.length, 3) - 1 && ", "}
+                                      </span>
+                                    ))}
                                     </div>
                                   )}
                                 </div>

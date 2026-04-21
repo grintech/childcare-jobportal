@@ -81,6 +81,20 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
     }
   };
 
+  const handleGradeChange = (e) => {
+    const value = e.target.value.toUpperCase();
+
+    if (/^[A-F]?$/.test(value)) {
+      onChange(row.id, "grade", value);
+      return;
+    }
+
+    if (/^(10(\.0?)?|[0-9](\.[0-9]?)?)?$/.test(value)) {
+      onChange(row.id, "grade", value);
+    }
+  };
+
+
   return (
     <div className="education_entry border rounded p-3 mb-3 position-relative">
       {showRemove && (
@@ -139,15 +153,16 @@ const EducationRow = ({ row, onChange, onRemove, showRemove }) => {
           />
         </div>
         <div className="col-md-4 mb-4">
-          <label className="mb-2">Grade / CGPA</label>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="i.e A / 8.5"
-            value={row.grade}
-            onChange={(e) => onChange(row.id, "grade", e.target.value)}
-          />
-        </div>
+        <label className="mb-2">Grade / CGPA</label>
+        <input
+          type="text"
+          className="form-control"
+          placeholder="i.e A / 8.5"
+          maxLength={4}
+          value={row.grade}
+          onChange={handleGradeChange}
+        />
+      </div>
         {yearError && (
           <div className="col-12 mb-2">
             <small className="text-danger">{yearError}</small>

@@ -164,6 +164,12 @@ const JobDetailPage = () => {
       return;
     }
 
+     // Wrong role
+    if (user?.role !== "teacher") {
+      toast.error("Only jobseeker can save the job!");
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -213,6 +219,10 @@ const JobDetailPage = () => {
   const handleSaveToggle = async (item) => {
     if (!isAuthenticated) {
       toast.error("Please login to save a job!");
+      return;
+    }
+    if (user?.role !== "teacher") {
+      toast.error("Only jobseeker can save the job!");
       return;
     }
 
@@ -423,7 +433,7 @@ const JobDetailPage = () => {
                       </p>
 
                         {Array.isArray(job?.skills) && job.skills.length > 0 && (
-                        <div className="mt-3 ">
+                        <div className="mt-3 mb-2">
                           <b>Skills:</b>{" "}
                           {job.skills?.map((s, i) => (
                             <span
@@ -449,7 +459,7 @@ const JobDetailPage = () => {
                     </div>
 
                     {/* DESCRIPTION */}
-                    <div className="job_detail_card shadow-sm">
+                    <div className="job_detail_card shadow-sm mb-3">
                       <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
                       <h5 className="fw-semibold mb-0">Job Description</h5>
                       <div className="d-flex">
@@ -509,16 +519,19 @@ const JobDetailPage = () => {
                           </span>
                         )}
                       </div>
-
-                        
-                      
-                      {job.additional_note && (
-                      <div className="mt-3 ">
-                        <b>Additional Note:</b> <span>{job.additional_note}</span>
-                      </div>
-
-                      )}
+                                                        
                     </div>
+                      
+                     {/* Additional Note */}
+                      {job.additional_note && (
+                      <div className="job_detail_card shadow-sm">
+                        <div className="">
+                          <h5 className="fw-semibold mb-2">Additional Note</h5>
+                          <span>{job.additional_note}</span>
+                        </div>
+
+                      </div>
+                        )}
                   </div>
 
                   {/* RIGHT SIDE */}
@@ -752,17 +765,18 @@ const JobDetailPage = () => {
 
                           {/* TAGS */}
                           {item.skills?.length > 0 && (
-                            <div className="job_tags d-flex">
+                            <div className="job_tags d-flex flex-wrap">
                               <div className="d-flex gap-2">
                                 <Tag size={16} />
                                 <strong>Tagged as:</strong>
                               </div>
 
                               {item.skills.map((tag, i) => (
-                                <span key={i} className="text-capitalize">
-                                  {tag}
-                                </span>
-                              ))}
+                              <span key={i} className="text-capitalize">
+                                {tag}
+                                {i < item.skills.length - 1 && ", "}
+                              </span>
+                            ))}
                             </div>
                           )}
 

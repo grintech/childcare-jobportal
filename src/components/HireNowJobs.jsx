@@ -144,9 +144,16 @@ useEffect(() => {
 
 
   const stripHtml = (html) => {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent || "";
-};
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return doc.body.textContent || "";
+  };
+
+  const formatText = (value) => {
+    if (!value) return "";
+    return value
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
 
 const renderStars = (rating) => {
    if (!rating || rating === 0) return null; 
@@ -469,22 +476,60 @@ const handleSaveToggle = async (job) => {
                           
                             <p className="company mb-2">{job.institution_name}</p>
                           
-                            <p className="description small">
+                            <p className="description small mb-2">
                               {stripHtml(job.short_description || job.description)}
                             </p>
 
-                          {job?.is_salary_hidden != 1 && (
+
+                             <p className="mb-2 job_home_info">
+                              {job?.job_type && (
+                                <span>
+                                  <b>Job Type:</b> {formatText(job.job_type)}
+                                </span>
+                              )}
+
+                              {job?.work_mode && (
+                                <>
+                                  {job?.job_type && " , "}
+                                  <span>
+                                    <b>Work Mode:</b> {formatText(job.work_mode)}
+                                  </span>
+                                </>
+                              )}
+
+                              {job?.experience_min && job?.experience_max && (
+                                <>
+                                  {(job?.job_type || job?.work_mode) && " , "}
+                                  <span>
+                                    <b>Experience:</b> {job.experience_min} - {job.experience_max} yrs
+                                  </span>
+                                </>
+                              )}
+
+                              {job?.is_salary_hidden != 1 && job?.salary_min && job?.salary_max && (
+                                <>
+                                  {(job?.job_type || job?.work_mode || (job?.experience_min && job?.experience_max)) && " , "}
+                                  <span>
+                                    <b> {job?.salary_type && ` ${formatText(job.salary_type)}`} :</b> {currency}{job.salary_min} - {currency}{job.salary_max}
+                                  
+                                  </span>
+                                </>
+                              )}
+                            </p>
+
+
+                          {/* {job?.is_salary_hidden != 1 && (
                               <p className="salary">
                                 {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
                               </p>
-                            )}
+                            )} */}
 
                             <div className="d-flex gap-1 mb-2">
                               {renderStars(job.average_rating)}
                             </div>
 
                             <p className="location m-0">
-                              <MapPin size={14} className="mb-1" /> {job.suburb} , {job.country}
+                              <MapPin size={14} className="" /> {job.suburb} , {job.country}
                             </p>
                           </Link>
 
@@ -524,7 +569,7 @@ const handleSaveToggle = async (job) => {
                       </div>
 
                      {job.skills?.length > 0 && (
-                      <div className="job_tags d-flex">
+                      <div className="job_tags d-flex flex-wrap">
                         <div className="d-flex gap-2">
                           <Tag size={16} />
                           <strong>Tagged as:</strong>
@@ -533,6 +578,7 @@ const handleSaveToggle = async (job) => {
                         {job.skills.map((tag, i) => (
                           <span key={i} className="text-capitalize">
                             {tag}
+                            {i !== job.skills.length - 1 && ", "}
                           </span>
                         ))}
                       </div>

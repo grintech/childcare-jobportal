@@ -424,7 +424,7 @@ const TeacherDetail = () => {
                     <button className="btn-post" onClick={handleSubmitReview} disabled={reviewLoading}>
                         {reviewLoading ? "Please wait..." : (
                           <>
-                            <Send size={13} />
+                            <Send size={13} className="me-1" />
                             {isEditing ? "Update Review" : "Submit Review"}
                           </>
                         )}

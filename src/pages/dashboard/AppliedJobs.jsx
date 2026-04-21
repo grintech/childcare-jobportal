@@ -147,9 +147,9 @@ const AppliedJobs = () => {
                             <div className="job_card_body list_view">
                               {/* LOGO */}
                               <div className="job_logo">
-                                {job.featured_image ? (
+                                {job.profile_image ? (
                                   <img
-                                    src={job.featured_image}
+                                    src={job.profile_image}
                                     alt=""
                                     style={{
                                       width: "55px",
@@ -167,17 +167,17 @@ const AppliedJobs = () => {
                               <div className="job_info">
                                 <h5><Link to={`/job/${job.slug}`}>{job.title}</Link></h5>
                                 <Link to={`/job/${job.institution_slug}`}>
-                                <p className="company">{job.institution_name}</p> 
+                                <p className="company mb-2">{job.institution_name}</p> 
                                 </Link>
 
                                {job?.is_salary_hidden !== 1 && (
-                                  <p className="salary">
-                                    {currency}{job.salary_min} - {currency}{job.salary_max} ({job.salary_type})
+                                  <p className="salary mb-2">
+                                   <span className="text-capitalize">{job.salary_type}:</span> {currency}{job.salary_min} - {currency}{job.salary_max} 
                                   </p>
                                 )}
 
                                 <p className="location">
-                                  <MapPin size={14} /> {job.city}, {job.state}
+                                  <MapPin size={14} /> {job?.suburb}, {job.country}
                                 </p>
                               </div>
 

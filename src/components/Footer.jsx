@@ -56,7 +56,7 @@ const Footer = () => {
             />
             <p className="footer_desc">
               Early Learning Careers connects passionate educators with leading childcare
-              centres across Australia. Find jobs, hire talent, and grow your career.
+              centres across Australia. Find jobs, hire talent and grow your career.
             </p>
 
             <div className="footer_social d-flex gap-3 mt-3">
