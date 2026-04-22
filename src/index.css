@@ -559,9 +559,10 @@ html {
 }
 
 .company{
-  color: var(--secondary);
+  color: var(--primary);
   font-size: 15px;
   text-transform: capitalize;
+  font-weight: 600;
 }
 .job_home_info{font-size: 15px; color: #000;}
 
@@ -2454,6 +2455,7 @@ textarea:focus {
    .profile_meta{min-width: 100%;}
    .cert_item a{font-size: 11px;}
    .custom-user-dropdown .dropdown-item {font-size: 15px;}
+   .step_title { font-size: 13px;}
 }
 
 @media (max-width:425px) {

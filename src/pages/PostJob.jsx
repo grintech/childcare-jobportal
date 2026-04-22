@@ -5,7 +5,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { Autocomplete, useJsApiLoader } from "@react-google-maps/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { UploadCloud, X, Eye, EyeOff } from "lucide-react";
+import { UploadCloud, X, Eye, EyeOff, Plus } from "lucide-react";
 import { useAuth } from "../context/AuthContext"; // adjust path if needed
 import { useNavigate } from "react-router-dom";
 
@@ -349,7 +349,8 @@ const validateUrl = (value) => {
   if (!formData.job_category_id) e.title = "Please select a job category.";
   if (formData.job_category_id === "other" && !formData.other.trim())
     e.other = "Please enter your custom job title.";
-  if (!formData.description || formData.description === "<p><br></p>")
+  // if (!formData.description || formData.description === "<p><br></p>")
+  if (!formData.description.trim())
     e.description = "Description is required.";
   setErrors(e);
   return !Object.keys(e).length;
@@ -413,20 +414,24 @@ const next = () => {
 
   const back = () => { setErrors({}); setStep(prev => prev - 1); };
 
+  // const addSkill = (e) => {
+  //   if (e.key === "Enter" && skillInput.trim()) {
+  //     e.preventDefault();
+  //     handleChange("skills", [...formData.skills, skillInput.trim()]);
+  //     setSkillInput("");
+  //   }
+  // };
+
   const addSkill = (e) => {
-    if (e.key === "Enter" && skillInput.trim()) {
-      e.preventDefault();
-      handleChange("skills", [...formData.skills, skillInput.trim()]);
-      setSkillInput("");
-    }
-  };
+  if ((e.key === "Enter" || e.keyCode === 13) && skillInput.trim()) {
+    e.preventDefault();
+    handleChange("skills", [...formData.skills, skillInput.trim()]);
+    setSkillInput("");
+  }
+};
 
   const removeSkill = (i) => handleChange("skills", formData.skills.filter((_, idx) => idx !== i));
 
-  // const handleImages = (e) => {
-  //   const files = Array.from(e.target.files);
-  //   handleChange("images", [...formData.images, ...files].slice(0, 5));
-  // };
 
   const handleImages = (e) => {
     const file = e.target.files[0];
@@ -800,7 +805,7 @@ const handleTwoDigitNumber = (field, value) => {
 };
 
 const handleOnlyNumbers = (field, value) => {
-  let cleaned = value.replace(/\D/g, "").slice(0, 4);
+  let cleaned = value.replace(/\D/g, "").slice(0, 6);
 
   if (cleaned === "0") cleaned = "";
 
@@ -834,7 +839,7 @@ const handlePhoneChange = (value) => {
              {[1, 2, 3, 4].map((s, index) => (
             <div key={s} className="step_wrapper">
               <div className={`step_circle ${step >= s ? "active" : ""}`}>{s}</div>
-              <div className="step_title">{["Basic", "Details", "Salary ", "Application Type"][index]}</div>
+              <div className="step_title">{["Basic", "Job Details", "Salary ", "Apply "][index]}</div>
               {index !== 3 && <div className={`step_line ${step > s ? "active" : ""}`} />}
             </div>
           ))}
@@ -961,7 +966,7 @@ const handlePhoneChange = (value) => {
                         </div>
                       )}
 
-                      <div className="col-12">
+                      {/* <div className="col-12">
                         <label>Description <span className="text-danger">*</span></label>
                         <ReactQuill
                           theme="snow"
@@ -970,7 +975,20 @@ const handlePhoneChange = (value) => {
                           placeholder="Write job description here..."
                         />
                         <Err field="description" />
-                      </div>
+                      </div> */}
+
+                      <div className="col-12">
+                      <label>Description <span className="text-danger">*</span></label>
+                      <textarea
+                        className={`form-control ${errors.description ? "is-invalid" : ""}`}
+                        rows={6}
+                        placeholder="Write job description here..."
+                        value={formData.description}
+                        onChange={(e) => handleChange("description", e.target.value)}
+                      />
+                      <Err field="description" />
+                    </div>
+
 
                       <div className="col-12">
                         <label>Short Description</label>
@@ -990,7 +1008,7 @@ const handlePhoneChange = (value) => {
                       </div>
 
 
-                      <div className="col-12">
+                      {/* <div className="col-12">
                         <label>Skills</label>
                         <input
                           className="form-control"
@@ -1006,7 +1024,41 @@ const handlePhoneChange = (value) => {
                             </span>
                           ))}
                         </div>
-                      </div>
+                      </div> */}
+
+                        <div className="col-12">
+                          <label>Skills</label>
+                          <div className="d-flex gap-2">
+                            <input
+                              className="form-control"
+                              placeholder="Type a skill & press button"
+                              value={skillInput}
+                              onChange={(e) => setSkillInput(e.target.value)}
+                              onKeyDown={addSkill}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-blue"
+                              style={{ whiteSpace: "nowrap" }}
+                              onClick={() => {
+                                if (skillInput.trim()) {
+                                  handleChange("skills", [...formData.skills, skillInput.trim()]);
+                                  setSkillInput("");
+                                }
+                              }}
+                            >
+                              <Plus size={20}/>
+                            </button>
+                          </div>
+                          <div className="mt-2">
+                            {formData.skills.map((s, i) => (
+                              <span key={i} className="badge me-2" onClick={() => removeSkill(i)} style={{ cursor: "pointer" }}>
+                                {s} ✕
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
 
                       <div className="col-12">
                         <label>Additional Note</label>

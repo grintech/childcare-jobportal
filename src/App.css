@@ -618,6 +618,7 @@
   margin-bottom: 0px !important;
   word-wrap: break-word;
 }
+.job_description img{width: 100%;}
 
 .job_description ul,
 .job_description ol {

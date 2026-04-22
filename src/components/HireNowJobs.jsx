@@ -118,29 +118,28 @@ useEffect(() => {
 
 
   const handleApplyClick = (job) => {
+  // Not logged in
+  if (!isAuthenticated) {
+    toast.error("Please login to apply for this job.");
+    return;
+  }
 
-    // External apply → redirect
-    if (job.apply_type === "external" && job.apply_url) {
-      window.open(job.apply_url, "_blank");
-      return;
-    }
+  // Wrong role
+  if (user?.role !== "teacher") {
+    toast.error("Only jobseekers can apply for jobs.");
+    return;
+  }
 
-    // Not logged in
-    if (!isAuthenticated) {
-      toast.error("Please login to apply the job!");
-      return;
-    }
+  // External apply
+  if (job?.apply_type === "external" && job?.apply_url) {
+    window.open(job.apply_url, "_blank", "noopener,noreferrer");
+    return;
+  }
 
-    // Wrong role
-    if (user?.role !== "teacher") {
-      toast.error("Only jobseeker can the apply!");
-      return;
-    }
-
-    // Allowed
-    setSelectedJob(job);
-    setShowApplyModal(true);
-  };
+  // Easy apply
+  setSelectedJob(job);
+  setShowApplyModal(true);
+};
 
 
   const stripHtml = (html) => {

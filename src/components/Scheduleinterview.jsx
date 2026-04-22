@@ -166,9 +166,9 @@ const ScheduleInterview = ({ teacher, onClose }) => {
     formData.append("invites[0][role]", "teacher");
 
     const response = await api.post("/invite", formData, {
-      headers: {
-        "Content-Type": undefined, // removes the default for this request only
-      },
+      // headers: {
+      //   "Content-Type": undefined, // removes the default for this request only
+      // },
     });
     toast.success(response?.message || "Interview scheduled successfully!");
     console.log(response?.message);

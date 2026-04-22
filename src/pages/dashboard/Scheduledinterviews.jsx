@@ -268,7 +268,7 @@ const ScheduledInterviews = () => {
     formData.append("status", "declined");
 
     const res = await api.post("/cancel-interview", formData, {
-      headers: { "Content-Type": undefined },
+      // headers: { "Content-Type": undefined },
     });
 
     if (res?.status) {

@@ -132,32 +132,32 @@ const JobDetailPage = () => {
     }
   };
 
-  // ✅ APPLY
-  const handleApplyClick = (job) => {
+  //  APPLY
+const handleApplyClick = (job) => {
+  // Not logged in
+  if (!isAuthenticated) {
+    toast.error("Please login to apply for this job.");
+    return;
+  }
 
-    if (job.apply_type === "external" && job.apply_url) {
-      window.open(job.apply_url, "_blank");
-      return;
-    }
+  // Wrong role
+  if (user?.role !== "teacher") {
+    toast.error("Only jobseekers can apply for jobs.");
+    return;
+  }
 
-    // Not logged in
-    if (!isAuthenticated) {
-      toast.error("Please login to apply the job!");
-      return;
-    }
+  // External apply
+  if (job?.apply_type === "external" && job?.apply_url) {
+    window.open(job.apply_url, "_blank", "noopener,noreferrer");
+    return;
+  }
 
-    // Wrong role
-    if (user?.role !== "teacher") {
-      toast.error("Only jobseeker can the apply!");
-      return;
-    }
+  // Easy apply
+  setSelectedJob(job);
+  setShowApplyModal(true);
+};
 
-    // Allowed
-    setSelectedJob(job);
-    setShowApplyModal(true);
-  };
-
-  // ✅ SAVE / UNSAVE
+  //  SAVE / UNSAVE
   const handleSave = async () => {
     if (!isAuthenticated) {
       toast.error("Please login to save a job!");
@@ -190,7 +190,7 @@ const JobDetailPage = () => {
     }
   };
 
-  // ✅ Similar Jobs
+  //  Similar Jobs
 
   const fetchSimilarJobs = async () => {
     try {
@@ -215,7 +215,7 @@ const JobDetailPage = () => {
     }
   }, [slug, isAuthenticated]);
 
-  // ✅ SAVE / UNSAVE SIMILAR
+  //  SAVE / UNSAVE SIMILAR
   const handleSaveToggle = async (item) => {
     if (!isAuthenticated) {
       toast.error("Please login to save a job!");
